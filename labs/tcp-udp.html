@@ -6,19 +6,35 @@
 <title>TCP / UDP — Ports Mastery</title>
 <meta name="color-scheme" content="light dark"/>
 <style>
-  :root{--bg:#f0f0f2;--fg:#0f1115;--muted:#6b6f76;--card:#ffffff;--accent:#0a84ff;--radius:18px;--shadow:0 10px 28px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.06);--ok:#1d9f49;--bad:#ff3b30}
-  @media (prefers-color-scheme: dark){:root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08)}}
+  :root{
+    --bg:#f0f0f2;--fg:#0f1115;--muted:#6b6f76;--card:#ffffff;--accent:#0a84ff;
+    --radius:18px;--shadow:0 10px 28px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.06);
+    --ok:#1d9f49;--bad:#ff3b30
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08)}
+  }
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-  header{position:sticky;top:0;background:var(--bg);border-bottom:var(--border);z-index:10}
+
+  /* Minimal header; controls live in toolbar below */
+  header{position:sticky;top:0;background:var(--bg);border-bottom:var(--border);z-index:20}
   .nav{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;gap:10px;align-items:center}
   .brand{display:flex;align-items:center;gap:10px;font-weight:700}
   .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(10,132,255,.18)}
   .spacer{flex:1}
   .btn{background:transparent;border:var(--border);border-radius:999px;padding:8px 14px;color:inherit;text-decoration:none;font-weight:600;cursor:pointer}
-  main{max-width:1120px;margin:0 auto;padding:32px 20px 80px}
+
+  /* Sticky toolbar under header for mobile ergonomics */
+  .toolbar{position:sticky; top:56px; z-index:15; background:var(--bg); border-bottom:var(--border)}
+  .toolbar .wrap{max-width:1120px;margin:0 auto;padding:10px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .toolbar .grow{flex:1}
+  .toolbar .btn{border-radius:12px}
+
+  main{max-width:1120px;margin:0 auto;padding:22px 20px 80px}
   h1{font-size:32px;margin:6px 0 10px}
   .lead{margin:0 0 14px;color:var(--muted)}
+
   .panel{border:var(--border);background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
   .card{border:var(--border);background:var(--card);border-radius:12px;padding:14px}
@@ -28,26 +44,45 @@
   .choice.bad{border-color:var(--bad);background:rgba(255,59,48,.1)}
   .choice.ok{border-color:var(--ok);background:rgba(29,159,73,.1)}
   .exp{margin-top:8px;color:var(--muted);font-size:13px}
+  .exp b{color:inherit}
   .result{font-weight:800;margin-top:10px}
   .ok{color:var(--ok)} .no{color:var(--bad)}
+
   footer{max-width:1120px;margin:40px auto 60px;padding:0 20px;color:var(--muted);font-size:13px}
+
+  /* iPhone 15 friendliness (≤430px) */
+  @media (max-width:430px){
+    .nav{padding:12px 14px}
+    .toolbar .wrap{padding:8px 14px}
+    .btn{padding:8px 12px}
+    h1{font-size:26px}
+    .grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  }
 </style>
 </head>
 <body>
 <header>
   <div class="nav">
     <a class="btn" href="../index.html" aria-label="Back">←</a>
-    <div class="brand"><span class="dot"></span><span>TCP / UDP</span></div>
+    <div class="brand"><span class="dot" aria-hidden="true"></span><span>TCP / UDP</span></div>
     <span class="spacer"></span>
-    <button class="btn" id="reveal">Reveal</button>
-    <button class="btn" id="check">Check</button>
-    <button class="btn" id="shuffle">Shuffle</button>
+    <!-- controls moved to toolbar -->
   </div>
 </header>
 
+<!-- Sticky toolbar (always visible under header) -->
+<div class="toolbar" role="region" aria-label="Practice controls">
+  <div class="wrap">
+    <span class="grow"></span>
+    <button class="btn" id="check">Check</button>
+    <button class="btn" id="reveal">Reveal</button>
+    <button class="btn" id="shuffle">Shuffle</button>
+  </div>
+</div>
+
 <main>
   <h1>TCP / UDP</h1>
-  <p class="lead">Pick the transport used by each service. Some use both. Check to see green for correct, red for incorrect, with a short explanation.</p>
+  <p class="lead">Pick the transport used by each service. Some use both. Check to see green for correct, red for incorrect, with a brief explanation, mnemonic, and a sticky fact.</p>
 
   <section class="panel">
     <div class="grid" id="qgrid"></div>
@@ -58,22 +93,59 @@
 <footer>© <span id="year"></span> packetbae — All Rights Reserved</footer>
 
 <script>
+// Items
 const ITEMS = [
   { svc:"HTTPS", port:443, answer:"TCP", why:"TLS over TCP provides reliability and ordered delivery for web content." },
   { svc:"HTTP", port:80, answer:"TCP", why:"Web transfers require reliable, in-order delivery." },
-  { svc:"DNS", port:53, answer:"Both", why:"Queries typically use UDP for speed; zone transfers and some large responses use TCP." },
+  { svc:"DNS", port:53, answer:"Both", why:"Queries typically use UDP for speed; zone transfers and large responses can use TCP." },
   { svc:"DHCP", port:"67/68", answer:"UDP", why:"Stateless broadcast/relay workflow uses UDP; there is no connection setup." },
   { svc:"SNMP (queries)", port:161, answer:"UDP", why:"Polling and traps are lightweight and connectionless (traps use 162/UDP)." },
   { svc:"NTP", port:123, answer:"UDP", why:"Time sync favors minimal overhead and one-shot exchanges." },
   { svc:"SSH", port:22, answer:"TCP", why:"Interactive shell and file copy need reliable streams and flow control." },
-  { svc:"RDP", port:3389, answer:"TCP", why:"Remote desktop needs reliability; modern implementations may add UDP for optimization but primary is TCP." },
+  { svc:"RDP", port:3389, answer:"TCP", why:"Remote desktop needs reliability; some implementations add UDP, but primary control is TCP." },
   { svc:"SMB", port:445, answer:"TCP", why:"File and printer sharing requires reliable, stateful sessions." },
-  { svc:"SIP (signaling, no TLS)", port:5060, answer:"Both", why:"SIP commonly uses UDP for signaling but TCP is also used by many deployments." },
-  { svc:"Syslog", port:514, answer:"Both", why:"Traditional syslog is UDP; reliable variants and relays use TCP." },
-  { svc:"Kerberos", port:88, answer:"Both", why:"Clients may use UDP for small tickets; TCP is used when messages exceed UDP size or by policy." },
+  { svc:"SIP (signaling, no TLS)", port:5060, answer:"Both", why:"SIP often uses UDP for signaling but TCP is also common." },
+  { svc:"Syslog", port:514, answer:"Both", why:"Traditional syslog is UDP; many relays and collectors use TCP for reliability." },
+  { svc:"Kerberos", port:88, answer:"Both", why:"UDP for small tickets; TCP when messages are larger or policy requires." },
   { svc:"MySQL", port:3306, answer:"TCP", why:"Database sessions are stateful and require reliable delivery." },
   { svc:"TFTP", port:69, answer:"UDP", why:"Trivial file transfer is connectionless and simple for bootstrapping." }
 ];
+
+// Mnemonics oriented to transport memory
+const MNEMONICS = {
+  "HTTPS":"TCP carries the page so TLS can lock it.",
+  "HTTP":"Pages ride reliable streams.",
+  "DNS":"UDP is quick; TCP when it’s thick.",
+  "DHCP":"No handshake, just answers: UDP.",
+  "SNMP (queries)":"Lightweight polls = UDP.",
+  "NTP":"Tick-tock one shot: UDP.",
+  "SSH":"Shell streams stay steady: TCP.",
+  "RDP":"Remote screen needs reliability: TCP.",
+  "SMB":"File sharing = stateful streams: TCP.",
+  "SIP (signaling, no TLS)":"Signal fast on UDP, tolerate TCP too.",
+  "Syslog":"Spray (UDP) or ship reliably (TCP).",
+  "Kerberos":"Tickets start light (UDP), grow to TCP.",
+  "MySQL":"Queries and transactions = TCP.",
+  "TFTP":"Trivial and tiny: UDP."
+};
+
+// Sticky facts (short, neutral training notes)
+const FACTS = {
+  "HTTPS":"Most sites enforce HSTS; fall back to 80 only for redirect.",
+  "HTTP":"Cleartext exposes cookies/creds; avoid except for 80→443 redirect.",
+  "DNS":"Open resolvers can be abused; limit recursion and AXFR.",
+  "DHCP":"Relies on broadcast/relay; scope to trusted segments.",
+  "SNMP (queries)":"Prefer SNMPv3 with authPriv; avoid default communities.",
+  "NTP":"Use authenticated sources; disable legacy ‘monlist’.",
+  "SSH":"Prefer keys over passwords; restrict by jump hosts.",
+  "RDP":"Expose only via VPN/jump; enforce NLA and MFA.",
+  "SMB":"Disable SMBv1; segment lateral paths.",
+  "SIP (signaling, no TLS)":"Unprotected signaling can enable toll fraud.",
+  "Syslog":"UDP can drop; TCP/TLS improves reliability and integrity.",
+  "Kerberos":"Clock skew breaks auth; keep NTP healthy.",
+  "MySQL":"Bind internally; consider TLS and least-privilege roles.",
+  "TFTP":"Use only on provisioning VLANs; no auth or encryption."
+};
 
 function render(items){
   const qgrid=document.getElementById('qgrid');
@@ -88,23 +160,34 @@ function render(items){
       <div class="exp" id="e${i}"></div>
     </div>
   `).join('');
+  document.getElementById('result').textContent='';
+}
+
+function lineFor(it, picked, correct){
+  const base = (picked===correct)
+    ? `<b>Correct — ${it.svc} uses ${correct}.</b> ${it.why}`
+    : `<b>Not quite — ${it.svc} is not ${picked}. Use ${correct}.</b> ${it.why}`;
+  const m = MNEMONICS[it.svc] ? ` Mnemonic: ${MNEMONICS[it.svc]}` : '';
+  const f = FACTS[it.svc] ? ` Sticky fact: ${FACTS[it.svc]}` : '';
+  return base + m + f;
 }
 
 function check(){
   let correct=0;
   ITEMS.forEach((it,i)=>{
     ["TCP","UDP","Both"].forEach(k=>document.getElementById(`c${i}-${k}`).classList.remove('ok','bad'));
-    const exp=document.getElementById(`e${i}`); exp.textContent='';
+    const exp=document.getElementById(`e${i}`); exp.innerHTML='';
     const el=document.querySelector(`input[name="q${i}"]:checked`);
     if(el){
-      if(el.value===it.answer){
-        document.getElementById(`c${i}-${el.value}`).classList.add('ok');
-        exp.textContent = `${it.svc} uses ${it.answer}. ${it.why}`;
+      const picked = el.value;
+      if(picked===it.answer){
+        document.getElementById(`c${i}-${picked}`).classList.add('ok');
+        exp.innerHTML = lineFor(it, picked, it.answer);
         correct++;
       } else {
-        document.getElementById(`c${i}-${el.value}`).classList.add('bad');
+        document.getElementById(`c${i}-${picked}`).classList.add('bad');
         document.getElementById(`c${i}-${it.answer}`).classList.add('ok');
-        exp.textContent = `${it.svc} is not ${el.value}. Use ${it.answer}. ${it.why}`;
+        exp.innerHTML = lineFor(it, picked, it.answer);
       }
     }
   });
@@ -123,9 +206,10 @@ function reveal(){
 
 function shuffle(){
   for(let i=ITEMS.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ITEMS[i],ITEMS[j]]=[ITEMS[j],ITEMS[i]]}
-  render(ITEMS); document.getElementById('result').textContent='';
+  render(ITEMS);
 }
 
+// Wire
 document.getElementById('check').addEventListener('click',check);
 document.getElementById('reveal').addEventListener('click',reveal);
 document.getElementById('shuffle').addEventListener('click',shuffle);
