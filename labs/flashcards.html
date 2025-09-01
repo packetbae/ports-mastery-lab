@@ -14,7 +14,6 @@
     :root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--border:1px solid rgba(255,255,255,.08)}
   }
 
-  /* Page */
   *{box-sizing:border-box}
   html,body{height:100%}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--fg)}
@@ -26,36 +25,65 @@
   footer{padding:16px;text-align:center;font-size:13px;color:var(--muted)}
 
   /* Cards */
-  .card{height:164px;perspective:1000px;cursor:pointer}
-  .inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s}
-  .flipped .inner{transform:rotateY(180deg)}
+  .card{
+    height:168px; perspective:1200px; cursor:pointer; will-change:transform;
+  }
+  .inner{
+    position:relative; width:100%; height:100%;
+    transform-style:preserve-3d;
+    transition:transform .66s cubic-bezier(.2,.7,.2,1.02), box-shadow .3s ease;
+  }
+  /* nice springy overshoot on flip */
+  .card.flipped .inner{
+    transform:rotateY(180deg) translateZ(0.001px);
+  }
+
   .side{
-    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    background:var(--card);backface-visibility:hidden;border-radius:var(--radius);
-    box-shadow:var(--shadow);border:var(--border);padding:16px;text-align:center
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:var(--card); backface-visibility:hidden;
+    border-radius:var(--radius); box-shadow:var(--shadow); border:var(--border);
+    padding:16px; text-align:center;
+    transition:box-shadow .25s ease, transform .2s ease;
   }
-  .front{font-size:32px;font-weight:800;letter-spacing:.2px}
-  .back{transform:rotateY(180deg);font-size:16px;line-height:1.45}
+  .front{
+    font-size:32px; font-weight:800; letter-spacing:.2px;
+  }
+  .back{
+    transform:rotateY(180deg);
+    font-size:16px; line-height:1.45;
+  }
+
+  /* animated stripe accent */
   .stripe{
-    position:absolute;top:0;left:0;right:0;height:8px;border-top-left-radius:var(--radius);border-top-right-radius:var(--radius);
-    background:var(--accent,#0a84ff)
+    position:absolute; top:0; left:0; right:0; height:8px;
+    border-top-left-radius:var(--radius); border-top-right-radius:var(--radius);
+    background:var(--accent,#0a84ff);
+    transform-origin:left center;
+    animation:stripe-sheen 1.2s ease both;
   }
+  @keyframes stripe-sheen{
+    from{transform:scaleX(.6); opacity:.7}
+    to{transform:scaleX(1); opacity:1}
+  }
+
+  /* rear badge (keep back label), removed front badge */
   .badge{
-    position:absolute;top:12px;right:12px;font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid rgba(0,0,0,.08);
-    background:var(--tint,#eef5ff);color:var(--fg)
+    position:absolute; top:12px; right:12px; font-size:11px; padding:4px 8px;
+    border-radius:999px; border:1px solid rgba(0,0,0,.08);
+    background:var(--tint,#eef5ff); color:var(--fg)
   }
+
   .svc{font-weight:700;margin-top:8px}
   .mn{margin-top:6px;color:var(--muted)}
   .desc{margin-top:6px}
 
-  /* Tap target improvements */
+  /* tactile press effect */
   .card:active .side{transform:scale(.995)}
-  .card:focus-within .side{outline:2px solid var(--accent,#0a84ff);outline-offset:2px}
+  .card:focus-within .side{outline:2px solid var(--accent,#0a84ff); outline-offset:2px}
 
-  /* Make sure iPhone 15 doesn’t shift horizontally */
-  @supports (overflow: clip){
-    body{overflow-x:clip}
-  }
+  /* iPhone 15 safe: prevent horizontal shift */
+  @supports (overflow: clip){ body{overflow-x:clip} }
 </style>
 </head>
 <body>
@@ -70,7 +98,6 @@
 <footer>© <span id="year"></span> packetbae — All Rights Reserved</footer>
 
 <script>
-/* Rotating, soft color palette (no gradients) */
 const PALETTE = [
   {accent:'#0a84ff', tint:'#e9f2ff'},
   {accent:'#34c759', tint:'#e9f8ef'},
@@ -81,42 +108,40 @@ const PALETTE = [
   {accent:'#8e8e93', tint:'#f0f1f4'}
 ];
 
-/* Clean, professional mnemonics */
 const FLASHCARDS = [
-  {port:"20/21", svc:"FTP", mn:"“21 controls, 20 carries.”", desc:"File Transfer Protocol — 21 = control channel, 20 = data."},
-  {port:"22", svc:"SSH / SFTP", mn:"“Two twos, two keys.”", desc:"Secure remote shell & file transfer over the same channel."},
-  {port:"23", svc:"Telnet", mn:"“23: plaintext—never for me.”", desc:"Legacy terminal protocol; replace with SSH."},
-  {port:"25", svc:"SMTP (relay)", mn:"“25: post office between servers.”", desc:"Server-to-server mail transport."},
-  {port:"53", svc:"DNS", mn:"“5-3 = D-N-S.”", desc:"Queries via UDP; transfers/large replies via TCP."},
-  {port:"67/68", svc:"DHCP", mn:"“67 serves, 68 gets.”", desc:"Server 67, client 68 — address assignment."},
-  {port:"69", svc:"TFTP", mn:"“69: tiny file transfer.”", desc:"Very simple file transfer; PXE/boot; no auth."},
-  {port:"80", svc:"HTTP", mn:"“80: open web.”", desc:"Cleartext web — use only for redirects/legacy."},
-  {port:"110", svc:"POP3", mn:"“110: pull once inbox.”", desc:"Mailbox download, clear unless upgraded."},
+  {port:"20/21", svc:"FTP", mn:"“21 controls, 20 carries.”", desc:"File Transfer — 21 control, 20 data."},
+  {port:"22", svc:"SSH / SFTP", mn:"“Two twos, two keys.”", desc:"Secure shell & file transfer on one channel."},
+  {port:"23", svc:"Telnet", mn:"“23: plaintext—never for me.”", desc:"Legacy terminal; replace with SSH."},
+  {port:"25", svc:"SMTP (relay)", mn:"“25: post office between servers.”", desc:"Server-to-server email."},
+  {port:"53", svc:"DNS", mn:"“5–3 = D-N-S.”", desc:"UDP queries; TCP for transfers/large replies."},
+  {port:"67/68", svc:"DHCP", mn:"“67 serves, 68 gets.”", desc:"Server 67, client 68 address assignment."},
+  {port:"69", svc:"TFTP", mn:"“69: tiny file transfer.”", desc:"PXE/boot; no auth or encryption."},
+  {port:"80", svc:"HTTP", mn:"“80: open web.”", desc:"Cleartext web; use for redirect to TLS."},
+  {port:"110", svc:"POP3", mn:"“110: pull once inbox.”", desc:"Mailbox download; clear unless upgraded."},
   {port:"123", svc:"NTP", mn:"“1-2-3: keep time aligned.”", desc:"Time sync over UDP."},
-  {port:"135–139", svc:"NetBIOS", mn:"“135-139: old neighborhood.”", desc:"Legacy Windows name/file services."},
-  {port:"143", svc:"IMAP", mn:"“1-4-3: I-MAP my mail.”", desc:"Mailbox sync; clear unless upgraded."},
-  {port:"161/162", svc:"SNMP", mn:"“Poll 161, trap 162.”", desc:"Monitoring (polls) and traps."},
-  {port:"389", svc:"LDAP", mn:"“389 can upgrade.”", desc:"Directory lookups; STARTTLS available."},
-  {port:"443", svc:"HTTPS", mn:"“4-4-3: lock the web.”", desc:"TLS-encrypted web traffic."},
+  {port:"135–139", svc:"NetBIOS", mn:"“Old neighborhood 135–139.”", desc:"Legacy Windows name/file services."},
+  {port:"143", svc:"IMAP", mn:"“1-4-3: I-MAP my mail.”", desc:"Mailbox sync; upgrade to TLS."},
+  {port:"161/162", svc:"SNMP", mn:"“Poll 161, trap 162.”", desc:"Monitoring queries and traps."},
+  {port:"389", svc:"LDAP", mn:"“389 can upgrade.”", desc:"Directory; STARTTLS available."},
+  {port:"443", svc:"HTTPS", mn:"“4-4-3: lock the web.”", desc:"TLS-encrypted web."},
   {port:"445", svc:"SMB", mn:"“4-4-5: Windows shares alive.”", desc:"File & printer sharing."},
-  {port:"465", svc:"SMTPS", mn:"“465: secure sleeve.”", desc:"Implicit TLS for SMTP (alt submission)."},
+  {port:"465", svc:"SMTPS", mn:"“465: secure sleeve.”", desc:"Implicit TLS for SMTP."},
   {port:"500", svc:"IKE/IPsec", mn:"“500: start the tunnel.”", desc:"IPsec Phase 1 negotiation."},
-  {port:"587", svc:"Submission", mn:"“5-8-7: send with auth.”", desc:"Client mail submission with STARTTLS + auth."},
+  {port:"587", svc:"Submission", mn:"“5-8-7: send with auth.”", desc:"Client mail submission + STARTTLS."},
   {port:"636", svc:"LDAPS", mn:"“389 got serious.”", desc:"LDAP over dedicated TLS."},
-  {port:"853", svc:"DoT", mn:"“8-5-3: DNS with TLS.”", desc:"DNS over TLS — resolver privacy."},
+  {port:"853", svc:"DoT", mn:"“8-5-3: DNS with TLS.”", desc:"DNS over TLS to upstream."},
   {port:"990", svc:"FTPS", mn:"“990: FTP secured.”", desc:"FTP control wrapped in TLS."},
   {port:"1433", svc:"MSSQL", mn:"“14-33: SQL for MS.”", desc:"Microsoft SQL Server listener."},
-  {port:"1521", svc:"Oracle DB", mn:"“15-21: Oracle’s gate.”", desc:"Oracle listener service."},
-  {port:"3306", svc:"MySQL", mn:"“33-0-6: my data mix.”", desc:"MySQL database connections."},
-  {port:"3389", svc:"RDP", mn:"“33-8-9: 3D screen.”", desc:"Remote Desktop Protocol with TLS/NLA."},
+  {port:"1521", svc:"Oracle DB", mn:"“15-21: Oracle’s gate.”", desc:"Oracle listener."},
+  {port:"3306", svc:"MySQL", mn:"“33-0-6: my data mix.”", desc:"Default MySQL port."},
+  {port:"3389", svc:"RDP", mn:"“33-8-9: 3D screen.”", desc:"Remote Desktop with TLS/NLA."},
   {port:"5432", svc:"PostgreSQL", mn:"“5-4-3-2: countdown to Postgres.”", desc:"Default Postgres port."},
-  {port:"1812/1813", svc:"RADIUS", mn:"“Auth 1812, account 1813.”", desc:"AAA and accounting."},
+  {port:"1812/1813", svc:"RADIUS", mn:"“Auth 1812, account 1813.”", desc:"AAA & accounting."},
   {port:"49", svc:"TACACS+", mn:"“49: TACACS control.”", desc:"Device admin AAA over TCP."},
-  {port:"1701", svc:"L2TP", mn:"“17-01: Layer-2 tunnel.”", desc:"Tunneling without native encryption."},
-  {port:"1723", svc:"PPTP", mn:"“17-23: legacy—retire.”", desc:"Deprecated VPN; avoid for new use."}
+  {port:"1701", svc:"L2TP", mn:"“17-01: Layer-2 tunnel.”", desc:"Tunnel, no native encryption."},
+  {port:"1723", svc:"PPTP", mn:"“17-23: legacy—retire.”", desc:"Deprecated VPN; avoid new use."}
 ];
 
-/* Build deck */
 const deck = document.getElementById('deck');
 deck.innerHTML = FLASHCARDS.map((f,i)=>{
   const pal = PALETTE[i % PALETTE.length];
@@ -125,12 +150,11 @@ deck.innerHTML = FLASHCARDS.map((f,i)=>{
       <div class="inner">
         <div class="side front">
           <div class="stripe"></div>
-          <div class="badge">${f.svc}</div>
           <div>${f.port}</div>
         </div>
         <div class="side back">
           <div class="stripe"></div>
-          <div class="badge">${f.port}</div>
+          <div class="badge" style="background:var(--tint)">${f.svc}</div>
           <div class="svc">${f.svc}</div>
           <div class="mn">${f.mn}</div>
           <div class="desc">${f.desc}</div>
@@ -139,11 +163,23 @@ deck.innerHTML = FLASHCARDS.map((f,i)=>{
     </div>`;
 }).join('');
 
-/* Flip interaction */
+/* Flip with slight overshoot for “nice” animation */
+function flipWithOvershoot(card){
+  card.classList.toggle('flipped');
+  // add a quick depth pop on flip start
+  const inner = card.querySelector('.inner');
+  inner.style.transitionTimingFunction = 'cubic-bezier(.2,.8,.2,1.2)';
+  // restore easing after animation ends
+  inner.addEventListener('transitionend', function handler(){
+    inner.style.transitionTimingFunction = '';
+    inner.removeEventListener('transitionend', handler);
+  });
+}
+
 deck.querySelectorAll('.card').forEach(card=>{
-  card.addEventListener('click',()=>card.classList.toggle('flipped'));
+  card.addEventListener('click',()=>flipWithOvershoot(card));
   card.addEventListener('keypress',e=>{
-    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); card.classList.toggle('flipped'); }
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); flipWithOvershoot(card); }
   });
   card.setAttribute('tabindex','0');
   card.setAttribute('aria-label','Flashcard; tap or press Enter to flip');
