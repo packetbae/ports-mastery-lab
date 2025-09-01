@@ -1,7 +1,7 @@
 #  Ports Mastery Lab by PACKETBAE
 
 **Struggling to remember networking ports for cybersecurity jobs or exams?**  
-This interactive lab makes it easy — designed to help you truly *remember* ports through practice.  
+This interactive lab makes it easy, designed to help you truly *remember* ports through practice.  
 
  100% free to use. No sign-ups. No hidden strings.  
 Just open learning for the community.  
