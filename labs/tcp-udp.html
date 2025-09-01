@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>TCP / UDP — Ports Mastery</title>
+<meta name="color-scheme" content="light dark"/>
+<style>
+  :root{--bg:#f0f0f2;--fg:#0f1115;--muted:#6b6f76;--card:#ffffff;--accent:#0a84ff;--radius:18px;--shadow:0 10px 28px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.06);--ok:#1d9f49;--bad:#ff3b30}
+  @media (prefers-color-scheme: dark){:root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08)}}
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  header{position:sticky;top:0;background:var(--bg);border-bottom:var(--border);z-index:10}
+  .nav{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;gap:10px;align-items:center}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(10,132,255,.18)}
+  .spacer{flex:1}
+  .btn{background:transparent;border:var(--border);border-radius:999px;padding:8px 14px;color:inherit;text-decoration:none;font-weight:600;cursor:pointer}
+  main{max-width:1120px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:32px;margin:6px 0 10px}
+  .lead{margin:0 0 14px;color:var(--muted)}
+  .panel{border:var(--border);background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+  .card{border:var(--border);background:var(--card);border-radius:12px;padding:14px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .choice{border:var(--border);border-radius:999px;padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .choice input{accent-color:var(--accent)}
+  .choice.bad{border-color:var(--bad);background:rgba(255,59,48,.1)}
+  .choice.ok{border-color:var(--ok);background:rgba(29,159,73,.1)}
+  .exp{margin-top:8px;color:var(--muted);font-size:13px}
+  .result{font-weight:800;margin-top:10px}
+  .ok{color:var(--ok)} .no{color:var(--bad)}
+  footer{max-width:1120px;margin:40px auto 60px;padding:0 20px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <div class="nav">
+    <a class="btn" href="../index.html" aria-label="Back">←</a>
+    <div class="brand"><span class="dot"></span><span>TCP / UDP</span></div>
+    <span class="spacer"></span>
+    <button class="btn" id="reveal">Reveal</button>
+    <button class="btn" id="check">Check</button>
+    <button class="btn" id="shuffle">Shuffle</button>
+  </div>
+</header>
+
+<main>
+  <h1>TCP / UDP</h1>
+  <p class="lead">Pick the transport used by each service. Some use both. Check to see green for correct, red for incorrect, with a short explanation.</p>
+
+  <section class="panel">
+    <div class="grid" id="qgrid"></div>
+    <div class="result" id="result"></div>
+  </section>
+</main>
+
+<footer>© <span id="year"></span> packetbae — All Rights Reserved</footer>
+
+<script>
+const ITEMS = [
+  { svc:"HTTPS", port:443, answer:"TCP", why:"TLS over TCP provides reliability and ordered delivery for web content." },
+  { svc:"HTTP", port:80, answer:"TCP", why:"Web transfers require reliable, in-order delivery." },
+  { svc:"DNS", port:53, answer:"Both", why:"Queries typically use UDP for speed; zone transfers and some large responses use TCP." },
+  { svc:"DHCP", port:"67/68", answer:"UDP", why:"Stateless broadcast/relay workflow uses UDP; there is no connection setup." },
+  { svc:"SNMP (queries)", port:161, answer:"UDP", why:"Polling and traps are lightweight and connectionless (traps use 162/UDP)." },
+  { svc:"NTP", port:123, answer:"UDP", why:"Time sync favors minimal overhead and one-shot exchanges." },
+  { svc:"SSH", port:22, answer:"TCP", why:"Interactive shell and file copy need reliable streams and flow control." },
+  { svc:"RDP", port:3389, answer:"TCP", why:"Remote desktop needs reliability; modern implementations may add UDP for optimization but primary is TCP." },
+  { svc:"SMB", port:445, answer:"TCP", why:"File and printer sharing requires reliable, stateful sessions." },
+  { svc:"SIP (signaling, no TLS)", port:5060, answer:"Both", why:"SIP commonly uses UDP for signaling but TCP is also used by many deployments." },
+  { svc:"Syslog", port:514, answer:"Both", why:"Traditional syslog is UDP; reliable variants and relays use TCP." },
+  { svc:"Kerberos", port:88, answer:"Both", why:"Clients may use UDP for small tickets; TCP is used when messages exceed UDP size or by policy." },
+  { svc:"MySQL", port:3306, answer:"TCP", why:"Database sessions are stateful and require reliable delivery." },
+  { svc:"TFTP", port:69, answer:"UDP", why:"Trivial file transfer is connectionless and simple for bootstrapping." }
+];
+
+function render(items){
+  const qgrid=document.getElementById('qgrid');
+  qgrid.innerHTML = items.map((it,i)=>`
+    <div class="card">
+      <div style="font-weight:600">${i+1}) ${it.svc} <span style="opacity:.6">(${it.port})</span></div>
+      <div class="row" role="radiogroup" aria-label="${it.svc}">
+        <label class="choice" id="c${i}-TCP"><input type="radio" name="q${i}" value="TCP"> TCP</label>
+        <label class="choice" id="c${i}-UDP"><input type="radio" name="q${i}" value="UDP"> UDP</label>
+        <label class="choice" id="c${i}-Both"><input type="radio" name="q${i}" value="Both"> Both</label>
+      </div>
+      <div class="exp" id="e${i}"></div>
+    </div>
+  `).join('');
+}
+
+function check(){
+  let correct=0;
+  ITEMS.forEach((it,i)=>{
+    ["TCP","UDP","Both"].forEach(k=>document.getElementById(`c${i}-${k}`).classList.remove('ok','bad'));
+    const exp=document.getElementById(`e${i}`); exp.textContent='';
+    const el=document.querySelector(`input[name="q${i}"]:checked`);
+    if(el){
+      if(el.value===it.answer){
+        document.getElementById(`c${i}-${el.value}`).classList.add('ok');
+        exp.textContent = `${it.svc} uses ${it.answer}. ${it.why}`;
+        correct++;
+      } else {
+        document.getElementById(`c${i}-${el.value}`).classList.add('bad');
+        document.getElementById(`c${i}-${it.answer}`).classList.add('ok');
+        exp.textContent = `${it.svc} is not ${el.value}. Use ${it.answer}. ${it.why}`;
+      }
+    }
+  });
+  const res=document.getElementById('result');
+  res.textContent = `${correct}/${ITEMS.length} correct`;
+  res.className = 'result ' + (correct===ITEMS.length? 'ok':'no');
+}
+
+function reveal(){
+  ITEMS.forEach((it,i)=>{
+    const radio=document.querySelector(`input[name="q${i}"][value="${it.answer}"]`);
+    if(radio) radio.checked=true;
+  });
+  check();
+}
+
+function shuffle(){
+  for(let i=ITEMS.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ITEMS[i],ITEMS[j]]=[ITEMS[j],ITEMS[i]]}
+  render(ITEMS); document.getElementById('result').textContent='';
+}
+
+document.getElementById('check').addEventListener('click',check);
+document.getElementById('reveal').addEventListener('click',reveal);
+document.getElementById('shuffle').addEventListener('click',shuffle);
+render(ITEMS);
+document.getElementById('year').textContent=new Date().getFullYear();
+</script>
+</body>
+</html>
