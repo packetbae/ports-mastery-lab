@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ports Mastery — packetbae</title>
+  <meta name="description" content="Interactive drills to practice and master networking ports for cybersecurity professionals." />
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    :root{
+      --bg:#f0f0f2;
+      --fg:#0f1115;
+      --muted:#6b6f76;
+      --card:#ffffff;
+      --accent:#0a84ff;
+      --radius:18px;
+      --shadow:0 10px 28px rgba(0,0,0,.08);
+      --border:1px solid rgba(0,0,0,.06);
+    }
+    @media (prefers-color-scheme: dark){
+      :root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08)}
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background:var(--bg);
+      color:var(--fg);
+    }
+    header{position:sticky;top:0;backdrop-filter:saturate(160%) blur(16px);background:rgba(246,247,249,.75);border-bottom:var(--border);z-index:10}
+    @media (prefers-color-scheme: dark){header{background:rgba(18,20,22,.75)}}
+    .nav{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:12px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(10,132,255,.18)}
+    .spacer{flex:1}
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:transparent;border:var(--border);color:var(--muted)}
+
+    main{max-width:1120px;margin:0 auto;padding:40px 20px 80px}
+    h1{font-size:40px;letter-spacing:-.3px;margin:22px 0 10px}
+    p.lead{margin:0;color:var(--muted);font-size:18px}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-top:28px}
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;position:relative;overflow:hidden;transition:transform .18s ease, box-shadow .18s ease;border:var(--border)}
+    .card:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(0,0,0,.12)}
+    .card h3{margin:6px 0 8px;font-size:18px}
+    .card p{margin:0;color:var(--muted);font-size:14px}
+    .card a{position:absolute;inset:0}
+    .tag{position:absolute;top:14px;right:14px;font-size:11px;padding:6px 10px;border-radius:999px;background:transparent;border:var(--border);color:var(--muted)}
+
+    .cta{margin-top:30px;display:flex;flex-wrap:wrap;gap:10px}
+    .btn{appearance:none;border:none;cursor:pointer;font-weight:600;letter-spacing:.2px;padding:12px 16px;border-radius:12px;background:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(10,132,255,.25);text-decoration:none;display:inline-flex;align-items:center;gap:10px;transition:transform .12s ease}
+    .btn:active{transform:translateY(1px)}
+    .btn.secondary{background:transparent;color:var(--fg);box-shadow:none;border:var(--border)}
+
+    .section{margin-top:40px}
+    .tiny{font-size:12px;color:var(--muted)}
+
+    footer{max-width:1120px;margin:40px auto 60px;padding:0 20px;color:var(--muted);font-size:13px}
+    footer a{color:inherit}
+
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:12px;background:#f2f2f7;padding:2px 6px;border-radius:6px;border:var(--border)}
+    @media (prefers-color-scheme: dark){.kbd{background:#1d1f24}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <div class="brand"><span class="dot" aria-hidden="true"></span><span>Ports Mastery</span></div>
+      <span class="spacer"></span>
+      <span class="pill">Practice</span>
+    </div>
+  </header>
+
+  <main>
+    <h1>Practice the networking ports that matter</h1>
+    <p class="lead">Launch concise drills to strengthen recognition and decision‑making for common services and protocols.</p>
+
+    <div class="grid" role="list">
+      <article class="card" role="listitem">
+        <span class="tag">Core</span>
+        <h3>Common Ports</h3>
+        <p>Drill essential ones: HTTP/HTTPS, SSH, RDP, DNS, DHCP, SMB, SMTP, and more.</p>
+        <a href="labs/common-ports.html" aria-label="Open Common Ports"></a>
+      </article>
+
+      <article class="card" role="listitem">
+        <span class="tag">Decisions</span>
+        <h3>Secure vs Insecure</h3>
+        <p>Choose secure replacements (e.g., Telnet → SSH, HTTP → HTTPS) with brief explanations.</p>
+        <a href="labs/secure-vs-insecure.html" aria-label="Open Secure vs Insecure"></a>
+      </article>
+
+      <article class="card" role="listitem">
+        <span class="tag">Protocols</span>
+        <h3>TCP / UDP</h3>
+        <p>Identify the transport and typical use cases (speed, reliability, statefulness).</p>
+        <a href="labs/tcp-udp.html" aria-label="Open TCP / UDP"></a>
+      </article>
+
+      <article class="card" role="listitem">
+        <span class="tag">Mapping</span>
+        <h3>Service ⇄ Port</h3>
+        <p>Map names to numbers in both directions with spaced‑practice flow.</p>
+        <a href="labs/service-port.html" aria-label="Open Service to Port"></a>
+      </article>
+
+      <article class="card" role="listitem">
+        <span class="tag">Scenarios</span>
+        <h3>Scenario Mode</h3>
+        <p>Short prompts: select port, transport, secure swap, and whether to keep it open.</p>
+        <a href="labs/scenarios.html" aria-label="Open Scenario Mode"></a>
+      </article>
+
+      <article class="card" role="listitem">
+        <span class="tag">Reference</span>
+        <h3>Printables</h3>
+        <p>Wall chart and quick reference for offline review.</p>
+        <a href="assets/cheatsheet.pdf" aria-label="Open printable cheatsheet"></a>
+      </article>
+    </div>
+
+    <div class="section">
+      <div class="cta">
+        <a class="btn" href="labs/scenarios.html">Start Practice</a>
+        <a class="btn secondary" href="about.html">About</a>
+      </div>
+      <p class="tiny" style="margin-top:8px">Shortcuts: <span class="kbd">N</span> next • <span class="kbd">E</span> explanation • <span class="kbd">R</span> retry</p>
+    </div>
+  </main>
+
+  <footer>
+    <div>© <span id="year"></span> packetbae — All Rights Reserved. Personal educational use permitted; no redistribution without permission.</div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
