@@ -1,21 +1,31 @@
-# Ports Mastery — Drills by packetbae
+# 🔐 Ports Mastery Lab by PACKETBAE
 
-A set of interactive drills to help cybersecurity professionals practice and remember key networking ports.
+**Struggling to remember networking ports for cybersecurity jobs or exams?**  
+This interactive lab makes it easy — designed to help you truly *remember* ports through practice.  
 
-## Features
-- **Common Ports:** HTTP/HTTPS, SSH, RDP, DNS, DHCP, SMB, SMTP, and others
-- **Secure vs Insecure:** Identify secure alternatives (e.g., Telnet → SSH)
-- **TCP / UDP:** Recognize the transport protocol and its common use cases
-- **Service ⇄ Port:** Map services to port numbers in both directions
-- **Scenario Mode:** Short practical prompts that test real-world decisions
-- **Printables:** Quick-reference sheet and wall chart for offline study
+✨ 100% free to use. No sign-ups. No hidden strings.  
+Just open learning for the community.  
 
-## Quick Start
-1. Clone or download this repository.  
-2. Open `index.html` in your browser (works locally or via GitHub Pages).  
-3. Select a drill and begin practicing.
+🌐 **Live Site:** [Ports Mastery Lab](https://packetbae.github.io/ports-mastery-lab)  
 
-**Keyboard shortcuts (when supported):**  
-`N` → next · `E` → explanation · `R` → retry
+---
 
-## Project Structure
+## 🚀 Features
+- Interactive scenarios to test and build memory  
+- Covers **TCP vs UDP** ports  
+- Clear explanations of what each port does and when it’s used  
+- Built for learners aiming for real-world cybersecurity roles and certifications  
+
+---
+
+## 🎯 Who Is This For?
+- Cybersecurity learners and students  
+- IT professionals brushing up on fundamentals  
+- Anyone preparing for exams (Security+, Network+, etc.)  
+
+---
+
+## 📖 How to Use
+1. Go to the [Live Demo](https://packetbae.github.io/ports-mastery-lab).  
+2. Select a scenario.  
+3. Test yourself and strengthen your memory of ports.  
