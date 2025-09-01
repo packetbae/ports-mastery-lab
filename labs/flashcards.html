@@ -21,22 +21,27 @@
   .nav{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:12px}
   .brand{font-weight:700;display:flex;align-items:center;gap:8px}
   .dot{width:10px;height:10px;border-radius:50%}
-  main{max-width:440px;margin:0 auto;padding:20px 16px 32px;display:grid;gap:14px}
+  main{
+    max-width:500px;margin:0 auto;
+    padding:20px 16px 32px;
+    padding-left:max(16px, env(safe-area-inset-left));
+    padding-right:max(16px, env(safe-area-inset-right));
+    display:grid;gap:14px
+  }
   footer{padding:16px;text-align:center;font-size:13px;color:var(--muted)}
 
   /* Cards */
   .card{
     height:168px; perspective:1200px; cursor:pointer; will-change:transform;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation; /* keeps tap snappy, allows scroll */
   }
   .inner{
-    position:relative; width:100%; height:100%;
+    position:relative;width:100%;height:100%;
     transform-style:preserve-3d;
     transition:transform .66s cubic-bezier(.2,.7,.2,1.02), box-shadow .3s ease;
   }
-  /* nice springy overshoot on flip */
-  .card.flipped .inner{
-    transform:rotateY(180deg) translateZ(0.001px);
-  }
+  .card.flipped .inner{ transform:rotateY(180deg) translateZ(0.001px); }
 
   .side{
     position:absolute; inset:0;
@@ -46,15 +51,9 @@
     padding:16px; text-align:center;
     transition:box-shadow .25s ease, transform .2s ease;
   }
-  .front{
-    font-size:32px; font-weight:800; letter-spacing:.2px;
-  }
-  .back{
-    transform:rotateY(180deg);
-    font-size:16px; line-height:1.45;
-  }
+  .front{ font-size:32px; font-weight:800; letter-spacing:.2px; }
+  .back{ transform:rotateY(180deg); font-size:16px; line-height:1.45; }
 
-  /* animated stripe accent */
   .stripe{
     position:absolute; top:0; left:0; right:0; height:8px;
     border-top-left-radius:var(--radius); border-top-right-radius:var(--radius);
@@ -62,27 +61,20 @@
     transform-origin:left center;
     animation:stripe-sheen 1.2s ease both;
   }
-  @keyframes stripe-sheen{
-    from{transform:scaleX(.6); opacity:.7}
-    to{transform:scaleX(1); opacity:1}
-  }
+  @keyframes stripe-sheen{ from{transform:scaleX(.6);opacity:.7} to{transform:scaleX(1);opacity:1} }
 
-  /* rear badge (keep back label), removed front badge */
   .badge{
     position:absolute; top:12px; right:12px; font-size:11px; padding:4px 8px;
     border-radius:999px; border:1px solid rgba(0,0,0,.08);
     background:var(--tint,#eef5ff); color:var(--fg)
   }
-
   .svc{font-weight:700;margin-top:8px}
   .mn{margin-top:6px;color:var(--muted)}
   .desc{margin-top:6px}
 
-  /* tactile press effect */
   .card:active .side{transform:scale(.995)}
   .card:focus-within .side{outline:2px solid var(--accent,#0a84ff); outline-offset:2px}
 
-  /* iPhone 15 safe: prevent horizontal shift */
   @supports (overflow: clip){ body{overflow-x:clip} }
 </style>
 </head>
@@ -163,27 +155,69 @@ deck.innerHTML = FLASHCARDS.map((f,i)=>{
     </div>`;
 }).join('');
 
-/* Flip with slight overshoot for “nice” animation */
+/* Flip animation with slight overshoot */
 function flipWithOvershoot(card){
   card.classList.toggle('flipped');
-  // add a quick depth pop on flip start
   const inner = card.querySelector('.inner');
   inner.style.transitionTimingFunction = 'cubic-bezier(.2,.8,.2,1.2)';
-  // restore easing after animation ends
   inner.addEventListener('transitionend', function handler(){
     inner.style.transitionTimingFunction = '';
     inner.removeEventListener('transitionend', handler);
   });
 }
 
-deck.querySelectorAll('.card').forEach(card=>{
-  card.addEventListener('click',()=>flipWithOvershoot(card));
-  card.addEventListener('keypress',e=>{
-    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); flipWithOvershoot(card); }
-  });
-  card.setAttribute('tabindex','0');
-  card.setAttribute('aria-label','Flashcard; tap or press Enter to flip');
-});
+/* One-tap flip that ignores scrolling (Pointer Events) */
+(function attachTapHandlers(){
+  const MOVE_TOL = 12;         // px movement allowed for a tap
+  const CLICK_SUPPRESS_MS = 450;
+
+  function wire(card){
+    let startX=0, startY=0, moved=false, downAt=0, lastTouchUp=0;
+
+    // Touch/pointer start
+    card.addEventListener('pointerdown', (e)=>{
+      if(e.pointerType === 'touch'){
+        startX = e.clientX; startY = e.clientY;
+        moved = false; downAt = performance.now();
+      }
+    }, {passive:true});
+
+    // Track movement to detect scroll/drag
+    card.addEventListener('pointermove', (e)=>{
+      if(e.pointerType === 'touch'){
+        if(Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_TOL){
+          moved = true;
+        }
+      }
+    }, {passive:true});
+
+    // Flip only on true tap
+    card.addEventListener('pointerup', (e)=>{
+      if(e.pointerType === 'touch'){
+        if(!moved && performance.now() - downAt < 600){
+          // prevent synthetic click from firing flip again
+          lastTouchUp = performance.now();
+          flipWithOvershoot(card);
+        }
+      }
+    });
+
+    // Cancel (e.g., scrolling)
+    card.addEventListener('pointercancel', ()=>{ moved = true; });
+
+    // Desktop / fallback click (ignore ghost click right after touch)
+    card.addEventListener('click', (e)=>{
+      const now = performance.now();
+      if(now - lastTouchUp < CLICK_SUPPRESS_MS) return;
+      // On desktop (mouse), just flip
+      if(e.pointerType === undefined || e.detail >= 0){
+        flipWithOvershoot(card);
+      }
+    });
+  }
+
+  document.querySelectorAll('.card').forEach(wire);
+})();
 
 document.getElementById('year').textContent=new Date().getFullYear();
 </script>
