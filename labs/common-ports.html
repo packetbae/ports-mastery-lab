@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Common Ports — Ports Mastery</title>
+<meta name="color-scheme" content="light dark"/>
+<style>
+  :root{
+    --bg:#f0f0f2;--fg:#0f1115;--muted:#6b6f76;--card:#ffffff;--accent:#0a84ff;
+    --radius:18px;--shadow:0 10px 28px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.06);
+    --ok:#1d9f49;--bad:#ff3b30;--line:#d2d2d7;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08);--line:#2b2f35}
+  }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+  header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:var(--border)}
+  .nav{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:10px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(10,132,255,.18)}
+  .spacer{flex:1}
+  .btn, .chip, select{
+    background:transparent;border:var(--border);border-radius:999px;padding:8px 14px;color:inherit;
+    text-decoration:none;font-weight:600;cursor:pointer
+  }
+  main{max-width:1120px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:36px;letter-spacing:-.2px;margin:6px 0 8px}
+  .lead{margin:0 0 18px;color:var(--muted)}
+  .panel{border:var(--border);background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:12px;margin-top:12px}
+  .box{background:var(--card);border:var(--border);border-radius:12px;padding:12px}
+  .box label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+  input[type="number"], select{width:100%;padding:10px;border:var(--border);border-radius:10px;background:var(--card);color:inherit}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .chip input{accent-color:var(--accent)}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .result{font-weight:800;margin-top:6px}
+  .ok{color:var(--ok)} .no{color:var(--bad)}
+  .good input,.good select{border-color:var(--ok);box-shadow:inset 0 0 0 9999px rgba(29,159,73,.08)}
+  .bad  input,.bad  select{border-color:var(--bad);box-shadow:inset 0 0 0 9999px rgba(255,59,48,.08)}
+  mark.hl-ok{background:rgba(255,235,59,.4);border-radius:2px;padding:0 2px;color:inherit}
+  .explain{color:var(--muted);white-space:pre-line;margin-top:8px}
+  .kgrid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:8px;margin-top:8px}
+  .k{background:var(--card);border:var(--border);border-radius:10px;padding:10px}
+  .k b{display:block;margin-bottom:4px}
+  footer{max-width:1120px;margin:40px auto 60px;padding:0 20px;color:var(--muted);font-size:13px}
+  @media (max-width:960px){.grid{grid-template-columns:1fr} h1{font-size:28px} .kgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="nav">
+    <a class="btn" href="../index.html" aria-label="Back">←</a>
+    <div class="brand"><span class="dot" aria-hidden="true"></span><span>Common Ports</span></div>
+    <span class="spacer"></span>
+    <select id="scenarioSel" title="Choose Scenario"></select>
+    <button class="btn" id="revealBtn">Reveal</button>
+    <button class="btn" id="checkBtn">Check</button>
+    <button class="btn" id="resetBtn">Reset</button>
+    <button class="btn" id="shuffleBtn">Shuffle</button>
+  </div>
+</header>
+
+<main>
+  <h1>Common Ports</h1>
+  <p class="lead">For each scenario: enter the <b>port number</b>, choose <b>TCP/UDP/Both</b>, mark if it’s <b>secure</b>, and pick the <b>service name</b>. Then check or reveal.</p>
+
+  <section class="panel" id="pbq">
+    <h2 id="title" style="margin:0 0 6px">Loading…</h2>
+    <p id="desc" data-orig="" style="margin:0 0 12px"></p>
+
+    <div class="grid">
+      <div class="box" id="bPort">
+        <label for="portInput">Port Number</label>
+        <input id="portInput" type="number" min="1" max="65535" placeholder="e.g., 443"/>
+      </div>
+
+      <div class="box" id="bTransport">
+        <label>Transport</label>
+        <div class="row" role="radiogroup" aria-label="Transport">
+          <label class="chip"><input type="radio" name="transport" value="TCP">TCP</label>
+          <label class="chip"><input type="radio" name="transport" value="UDP">UDP</label>
+          <label class="chip"><input type="radio" name="transport" value="Both">Both</label>
+        </div>
+      </div>
+
+      <div class="box" id="bSecure">
+        <label>Security</label>
+        <div class="row" role="radiogroup" aria-label="Security">
+          <label class="chip"><input type="radio" name="secure" value="Yes">Secure</label>
+          <label class="chip"><input type="radio" name="secure" value="No">Not Secure</label>
+        </div>
+      </div>
+
+      <div class="box" id="bService">
+        <label for="serviceSel">Service Name</label>
+        <select id="serviceSel">
+          <option value="">Select service…</option>
+          <option>HTTP</option><option>HTTPS</option><option>SSH</option><option>Telnet</option>
+          <option>FTP</option><option>FTPS</option><option>SFTP</option>
+          <option>SMTP</option><option>Submission (SMTP)</option><option>SMTPS</option>
+          <option>POP3</option><option>POP3S</option><option>IMAP</option><option>IMAPS</option>
+          <option>DNS</option><option>DHCP</option><option>TFTP</option>
+          <option>SNMP</option><option>Syslog</option><option>NTP</option>
+          <option>Kerberos</option><option>LDAP</option><option>LDAPS</option>
+          <option>SMB</option><option>RDP</option>
+          <option>SIP</option>
+          <option>MySQL</option><option>MSSQL</option><option>PostgreSQL</option><option>Oracle DB</option>
+          <option>RADIUS</option><option>TACACS+</option>
+          <option>IKE/IPsec</option><option>L2TP</option><option>PPTP</option>
+          <option>DoT (DNS over TLS)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="checkBtn2">Check</button>
+      <button class="btn" id="revealBtn2">Reveal</button>
+      <button class="btn" id="resetBtn2">Reset</button>
+      <div id="score" class="result"></div>
+    </div>
+
+    <div id="explain" class="explain"></div>
+    <div id="kmeta" class="kgrid" aria-live="polite"></div>
+  </section>
+</main>
+
+<footer>© <span id="year"></span> packetbae — All Rights Reserved</footer>
+
+<script>
+// ---------- Utilities ----------
+function setPristine(p, text){ p.dataset.orig = text; p.innerHTML = text; }
+function highlight(p, terms){
+  let html = p.dataset.orig || p.innerHTML;
+  (terms||[]).filter(Boolean).sort((a,b)=>b.length-a.length).forEach(t=>{
+    const esc = t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    html = html.replace(new RegExp('(' + esc + ')','gi'),'<mark class="hl-ok">$1<\/mark>');
+  });
+  p.innerHTML = html;
+}
+function decorate(el, ok){ el.classList.remove('good','bad'); el.classList.add(ok?'good':'bad'); }
+function getRadio(name){ const el = document.querySelector('input[name="'+name+'"]:checked'); return el?el.value:""; }
+function setRadio(name,val){ document.querySelectorAll('input[name="'+name+'"]').forEach(r=>r.checked=(r.value===val)); }
+function clearRadios(name){ document.querySelectorAll('input[name="'+name+'"]').forEach(r=>r.checked=false); }
+
+// ---------- Data helpers ----------
+function A(port, transport, secure, service){ return { port:String(port), transport, secure, service }; }
+function M(fn, keep, when){ return { fn, keep, when }; }
+function S(title, text, cues, ans, proto, meta){ return { title, text, cues, ans, proto, meta }; }
+
+// ---------- Scenarios (24) ----------
+const SCENARIOS = [
+  S("Web storefront requires encryption","A payment page must be reachable over TLS with a padlock in modern browsers. Legacy port 80 should redirect, but the primary listener must be the standard secure web port.",["TLS","padlock","redirect","secure web"],A(443,"TCP","Yes","HTTPS"),"TCP",M("Encrypted web browsing.","Yes (edge)","External web apps; force 80→443.")),
+  S("Legacy admin console over cleartext","An old appliance serves admin over plain web and does not negotiate TLS. Allow the historical web port from a jump segment temporarily.",["plain web","no TLS","historical web"],A(80,"TCP","No","HTTP"),"TCP",M("Unencrypted web.","Prefer redirect to 443","Temporary legacy access.")),
+  S("Remote shell into Linux bastion","Operations use a cryptographic remote shell with key pairs. Port forwarding and SCP must also work on the same protocol.",["cryptographic","key pairs","SCP","tunneling"],A(22,"TCP","Yes","SSH"),"TCP",M("Secure shell & tunneling.","Scoped internal/edge","Admin access, Git, SFTP/SCP.")),
+  S("Unencrypted terminal (discouraged)","A vendor asks for a one-off unencrypted terminal session to a router. Scope access to the plaintext terminal port.",["unencrypted","plaintext","terminal"],A(23,"TCP","No","Telnet"),"TCP",M("Plain terminal.","Block; use SSH","Only if forced; migrate.")),
+  S("PXE pull via trivial UDP service","Clients pull boot files using a trivial UDP service with no auth on the provisioning VLAN.",["trivial","UDP","PXE"],A(69,"UDP","No","TFTP"),"UDP",M("Trivial file transfer.","Internal PXE only","PXE boot, firmware staging.")),
+  S("Directory over STARTTLS (not LDAPS port)","Apps bind to the directory over the historical port with optional STARTTLS upgrade, not the dedicated SSL port.",["STARTTLS","historical port","not dedicated SSL"],A(389,"Both","No","LDAP"),"Both",M("Directory lookups.","Internal only","AD/LDAP queries.")),
+  S("Strict LDAPS","Partners require encrypted directory queries using the dedicated SSL/TLS port.",["encrypted directory","dedicated TLS"],A(636,"TCP","Yes","LDAPS"),"TCP",M("LDAP over TLS.","Scoped partner/internal","Directory queries with TLS.")),
+  S("Name resolution","Resolvers use a connectionless protocol for queries; zone transfers can use TCP on the same well-known number.",["queries","zone transfers","connectionless"],A(53,"Both","No","DNS"),"Both",M("Name resolution.","Edge allowed; filter","UDP queries, TCP transfers.")),
+  S("Time sync","Members need a UDP service to keep system clocks aligned.",["UDP","clocks","time source"],A(123,"UDP","No","NTP"),"UDP",M("Time sync.","Internal; restrict","Domain time, log correlation.")),
+  S("Client mail submission","User mail apps submit through the gateway using the modern submission port with auth and STARTTLS.",["submission","auth","STARTTLS"],A(587,"TCP","Yes","Submission (SMTP)"),"TCP",M("Client→server submission.","Mail edge","MUAs sending outbound mail.")),
+  S("Server mail relay","Allow server-to-server mail transport on the traditional relay port.",["server-to-server","relay"],A(25,"TCP","No","SMTP"),"TCP",M("MTA relay.","Mail edge only","MTA↔MTA transport.")),
+  S("Secure POP","Laptops download mail via POP with TLS wrapping from start.",["download","TLS from start"],A(995,"TCP","Yes","POP3S"),"TCP",M("Secure POP.","Mail edge if used","POP clients over TLS.")),
+  S("Secure IMAP","Mobile users need encrypted mailbox sync from connection start (not STARTTLS).",["encrypted from start","mailbox sync"],A(993,"TCP","Yes","IMAPS"),"TCP",M("Secure IMAP.","Mail edge if used","IMAP over TLS.")),
+  S("Legacy IMAP (temporary)","A legacy device reads a drop inbox over cleartext IMAP. Permit temporarily.",["legacy","cleartext IMAP"],A(143,"TCP","No","IMAP"),"TCP",M("IMAP (clear).","Prefer block","Migrate to TLS.")),
+  S("SFTP over SSH","Nightly extracts move via SFTP, leveraging the same channel as SSH.",["SFTP","SSH channel"],A(22,"TCP","Yes","SFTP"),"TCP",M("File transfer over SSH.","Scoped","Automated secure transfers.")),
+  S("FTPS explicit","A partner requires explicit TLS on the FTPS control channel",["explicit TLS","FTPS control"],A(990,"TCP","Yes","FTPS"),"TCP",M("FTP with TLS.","Partner edge","B2B transfers.")),
+  S("Remote Desktop","Helpdesk connects to servers via the graphical remote protocol.",["graphical remote"],A(3389,"TCP","Yes","RDP"),"TCP",M("Remote desktop.","Internal scoped","Admin/jump hosts.")),
+  S("SMB direct","Windows clients reach SMB directly without NetBIOS.",["SMB","direct"],A(445,"TCP","No","SMB"),"TCP",M("File/print sharing.","Block edge","Shares, AD ops.")),
+  S("SNMP queries","Monitoring polls devices using classic management protocol on UDP.",["polls","management","UDP"],A(161,"UDP","No","SNMP"),"UDP",M("Monitoring.","Internal only (v3)","NMS polling.")),
+  S("Syslog","Appliances forward events to a collector on the default port.",["events","collector"],A(514,"Both","No","Syslog"),"Both",M("Event transport.","Internal","Logs to SIEM.")),
+  S("Kerberos","Members exchange tickets on the well-known Kerberos port.",["tickets","domain"],A(88,"Both","Yes","Kerberos"),"Both",M("Authentication.","Internal","Logon/service auth.")),
+  S("IKE negotiation","Allow Internet Key Exchange for IPsec peers.",["IKE","IPsec","UDP"],A(500,"UDP","Yes","IKE/IPsec"),"UDP",M("IPsec phase 1.","VPN edge","Site-to-site/remote.")),
+  S("SIP signaling","Phones register to the call manager without TLS. Media is RTP.",["SIP","signaling","RTP"],A(5060,"Both","No","SIP"),"Both",M("VoIP signaling.","Provider/internal","Registration/call setup.")),
+  S("MySQL","App tier connects to the database on its default port.",["database","default"],A(3306,"TCP","No","MySQL"),"TCP",M("RDBMS connections.","Internal","App→DB."))
+];
+
+// ---------- DOM refs ----------
+const tTitle = document.getElementById('title');
+const tDesc  = document.getElementById('desc');
+const portInput = document.getElementById('portInput');
+const serviceSel = document.getElementById('serviceSel');
+const bPort = document.getElementById('bPort');
+const bTransport = document.getElementById('bTransport');
+const bSecure = document.getElementById('bSecure');
+const bService = document.getElementById('bService');
+const scoreEl = document.getElementById('score');
+const explainEl = document.getElementById('explain');
+const kmetaEl = document.getElementById('kmeta');
+const scenarioSel = document.getElementById('scenarioSel');
+
+// ---------- Logic ----------
+let IDX = 0;
+const titleFor = (i,t)=> (i+1)+') '+t;
+
+function clearAll(){
+  portInput.value="";
+  ["transport","secure"].forEach(clearRadios);
+  serviceSel.value="";
+  [bPort,bTransport,bSecure,bService].forEach(b=>b.classList.remove('good','bad'));
+  scoreEl.textContent=""; scoreEl.className="result";
+  explainEl.textContent=""; kmetaEl.innerHTML="";
+  setPristine(tDesc, tDesc.dataset.orig || tDesc.innerHTML);
+}
+
+function loadScenario(i){
+  IDX = Math.max(0, Math.min(SCENARIOS.length-1, i));
+  const s = SCENARIOS[IDX];
+  tTitle.textContent = titleFor(IDX, s.title);
+  setPristine(tDesc, s.text);
+  clearAll();
+  scenarioSel.value = String(IDX);
+}
+
+function showMeta(s){
+  kmetaEl.innerHTML = '<div class="k"><b>Function</b>'+s.meta.fn+'</div>'+
+    '<div class="k"><b>Keep Open?</b>'+s.meta.keep+'<div style="margin-top:6px"><b>Typical Use</b><br/>'+s.meta.when+'</div></div>';
+}
+
+function check(){
+  const s = SCENARIOS[IDX];
+  const chosen = {
+    port: String(portInput.value || ''),
+    transport: getRadio('transport'),
+    secure: getRadio('secure'),
+    service: serviceSel.value
+  };
+  const ok1 = chosen.port === s.ans.port;
+  const ok2 = chosen.transport === s.ans.transport;
+  const ok3 = chosen.secure === s.ans.secure;
+  const ok4 = chosen.service === s.ans.service;
+  decorate(bPort, ok1); decorate(bTransport, ok2); decorate(bSecure, ok3); decorate(bService, ok4);
+  const allOk = ok1 && ok2 && ok3 && ok4;
+  scoreEl.textContent = allOk ? 'Correct' : 'Try again';
+  scoreEl.className = 'result ' + (allOk ? 'ok' : 'no');
+  highlight(tDesc, s.cues);
+  explainEl.textContent = 'Answer:\n• Port: ' + s.ans.port + '\n• Transport: ' + s.ans.transport + '\n• Secure: ' + s.ans.secure + '\n• Service: ' + s.ans.service + '\n• Native Protocol: ' + s.proto;
+  showMeta(s);
+}
+
+function reveal(){
+  const s = SCENARIOS[IDX];
+  portInput.value = s.ans.port;
+  setRadio('transport', s.ans.transport);
+  setRadio('secure', s.ans.secure);
+  serviceSel.value = s.ans.service;
+  [bPort,bTransport,bSecure,bService].forEach(b=>decorate(b,true));
+  scoreEl.textContent = 'Revealed';
+  scoreEl.className = 'result ok';
+  highlight(tDesc, s.cues);
+  explainEl.textContent = 'Answer:\n• Port: ' + s.ans.port + '\n• Transport: ' + s.ans.transport + '\n• Secure: ' + s.ans.secure + '\n• Service: ' + s.ans.service + '\n• Native Protocol: ' + s.proto;
+  showMeta(s);
+}
+
+function shuffle(){
+  for(let i=SCENARIOS.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [SCENARIOS[i],SCENARIOS[j]]=[SCENARIOS[j],SCENARIOS[i]];
+  }
+  scenarioSel.innerHTML = SCENARIOS.map((s,i)=>'<option value="'+i+'">'+titleFor(i,s.title)+'</option>').join('');
+  loadScenario(0);
+}
+
+// Wire events
+['checkBtn','checkBtn2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',check); });
+['revealBtn','revealBtn2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',reveal); });
+['resetBtn','resetBtn2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',()=>loadScenario(IDX)); });
+const sh=document.getElementById('shuffleBtn'); if(sh) sh.addEventListener('click',shuffle);
+scenarioSel.addEventListener('change',e=>loadScenario(Number(e.target.value)));
+
+// Init
+scenarioSel.innerHTML = SCENARIOS.map((s,i)=>'<option value="'+i+'">'+titleFor(i,s.title)+'</option>').join('');
+loadScenario(0);
+document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
