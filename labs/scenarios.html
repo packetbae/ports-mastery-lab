@@ -6,12 +6,11 @@
 <title>Scenario Mode — Ports Mastery</title>
 <meta name="color-scheme" content="light dark"/>
 <style>
-  :root{--bg:#f0f0f2;--fg:#0f1115;--muted:#6b6f76;--card:#ffffff;--accent:#0a84ff;--radius:18px;--shadow:0 10px 28px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.06);--ok:#1d9f49;--bad:#ff3b30;--line:#d2d2d7}
-  @media (prefers-color-scheme: dark){:root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08);--line:#2b2f35}}
+  :root{--bg:#f0f0f2;--fg:#0f1115;--muted:#6b6f76;--card:#ffffff;--accent:#0a84ff;--radius:18px;--shadow:0 10px 28px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.06);--ok:#1d9f49;--bad:#ff3b30}
+  @media (prefers-color-scheme: dark){:root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08)}}
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
 
-  /* Header (kept minimal) */
   header{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:var(--border)}
   .nav{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:10px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:700}
@@ -19,10 +18,10 @@
   .spacer{flex:1}
   .btn,.chip,select{background:transparent;border:var(--border);border-radius:999px;padding:8px 14px;color:inherit;text-decoration:none;font-weight:600;cursor:pointer}
 
-  /* Sticky scenario toolbar (always visible under header) */
   .toolbar{position:sticky; top:56px; z-index:15; background:var(--bg); border-bottom:var(--border)}
   .toolbar .wrap{max-width:1120px;margin:0 auto;padding:10px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .toolbar select,.toolbar button{border-radius:12px}
+  #countLabel{color:var(--muted);font-size:.9rem}
 
   main{max-width:1120px;margin:0 auto;padding:22px 20px 80px}
   h1{font-size:32px;margin:6px 0 10px}
@@ -64,15 +63,13 @@
     <a class="btn" href="../index.html" aria-label="Back">←</a>
     <div class="brand"><span class="dot" aria-hidden="true"></span><span>Scenario Mode</span></div>
     <span class="spacer"></span>
-    <!-- controls moved to toolbar -->
   </div>
 </header>
 
-<!-- Sticky toolbar under header -->
 <div class="toolbar" role="region" aria-label="Scenario controls">
   <div class="wrap">
-    <label for="scenarioSel" class="sr-only" style="position:absolute;left:-9999px">Choose Scenario</label>
     <select id="scenarioSel" title="Choose Scenario"></select>
+    <span id="countLabel"></span>
     <button class="btn" id="prevBtn" aria-label="Previous">◀</button>
     <button class="btn" id="nextBtn" aria-label="Next">▶</button>
     <span style="flex:1"></span>
@@ -156,7 +153,8 @@
 <footer>© <span id="year"></span> packetbae — All Rights Reserved</footer>
 
 <script>
-// ---------- Utilities ----------
+/* ===== Helpers ===== */
+const $ = id => document.getElementById(id);
 function setPristine(p, text){ p.dataset.orig = text; p.innerHTML = text; }
 function highlight(p, terms){
   let html = p.dataset.orig || p.innerHTML;
@@ -171,166 +169,161 @@ function getRadio(name){ const el = document.querySelector('input[name="'+name+'
 function setRadio(name,val){ document.querySelectorAll('input[name="'+name+'"]').forEach(r=>r.checked=(r.value===val)); }
 function clearRadios(name){ document.querySelectorAll('input[name="'+name+'"]').forEach(r=>r.checked=false); }
 
-// ---------- Canonical services ----------
+/* ===== Catalog ===== */
 const CATALOG = [
-  {svc:"HTTPS", port:"443", transport:"TCP", secure:"Yes", why:"TLS provides confidentiality and integrity for web traffic; browsers expect port 443 for secure sites.", fn:"Encrypted web browsing.", keep:"Yes (edge)", when:"Public sites and APIs; force 80→443."},
-  {svc:"HTTP", port:"80", transport:"TCP", secure:"No", why:"Plain HTTP is cleartext; use only for redirects or isolated legacy admin paths.", fn:"Unencrypted web.", keep:"Maybe (edge) — redirect", when:"Legacy web, redirect to HTTPS."},
-  {svc:"SSH", port:"22", transport:"TCP", secure:"Yes", why:"Cryptographic remote shell with key authentication, port forwarding, and file copy via SFTP/SCP.", fn:"Secure shell & tunneling.", keep:"Scoped only", when:"Admin access, Git, SFTP/SCP."},
-  {svc:"Telnet", port:"23", transport:"TCP", secure:"No", why:"Telnet sends credentials and data in plaintext; replace with SSH for security.", fn:"Plain terminal.", keep:"No (block)", when:"Only for unavoidable legacy."},
-  {svc:"TFTP", port:"69", transport:"UDP", secure:"No", why:"Trivial file transfer has no auth or encryption; used for PXE and device boot images.", fn:"Unauthenticated file transfer.", keep:"Internal only", when:"PXE boot, firmware staging."},
-  {svc:"LDAP", port:"389", transport:"Both", secure:"No", why:"Directory lookups on 389 are clear unless upgraded with STARTTLS; many apps support the upgrade.", fn:"Directory lookups.", keep:"Internal only", when:"AD/LDAP queries; prefer STARTTLS."},
-  {svc:"LDAPS", port:"636", transport:"TCP", secure:"Yes", why:"Dedicated TLS for LDAP; encrypts credentials and attributes end-to-end.", fn:"Directory over TLS.", keep:"Scoped partner/internal", when:"Encrypted directory queries."},
-  {svc:"DNS", port:"53", transport:"Both", secure:"No", why:"Queries use UDP; zone transfers and large responses can switch to TCP on the same port.", fn:"Name resolution.", keep:"Edge yes; filter", when:"User resolution; AXFR over TCP."},
-  {svc:"NTP", port:"123", transport:"UDP", secure:"No", why:"Lightweight time sync with minimal overhead; no session establishment.", fn:"Clock sync.", keep:"Internal only", when:"Domain time, log correlation."},
-  {svc:"Submission (SMTP)", port:"587", transport:"TCP", secure:"Yes", why:"Authenticated mail submission with STARTTLS expected; distinct from server relay on 25.", fn:"Client submission.", keep:"Mail edge", when:"MUAs sending outbound mail."},
-  {svc:"SMTP", port:"25", transport:"TCP", secure:"No", why:"Traditional server-to-server email transport; encryption is opportunistic via STARTTLS.", fn:"Server relay.", keep:"Mail edge", when:"MTA↔MTA transport."},
-  {svc:"POP3S", port:"995", transport:"TCP", secure:"Yes", why:"POP wrapped in TLS from connection start; protects credentials and message data.", fn:"Secure POP.", keep:"If used", when:"POP clients over TLS."},
-  {svc:"IMAPS", port:"993", transport:"TCP", secure:"Yes", why:"Encrypted IMAP from session start; avoids STARTTLS negotiation issues.", fn:"Secure IMAP.", keep:"If used", when:"Mobile mail sync over TLS."},
-  {svc:"IMAP", port:"143", transport:"TCP", secure:"No", why:"Cleartext IMAP unless upgraded; avoid except for temporary legacy devices.", fn:"Mailbox sync (clear).", keep:"Prefer block", when:"Legacy scanners; migrate."},
-  {svc:"SFTP", port:"22", transport:"TCP", secure:"Yes", why:"File transfer over SSH; benefits from the same cryptographic channel and controls.", fn:"File transfer over SSH.", keep:"Scoped", when:"Automated secure transfers."},
-  {svc:"FTPS", port:"990", transport:"TCP", secure:"Yes", why:"FTP with explicit TLS on the control channel; partner-friendly when SSH is unavailable.", fn:"FTP with TLS.", keep:"Partner edge", when:"B2B transfers with TLS."},
-  {svc:"RDP", port:"3389", transport:"TCP", secure:"Yes", why:"Remote desktop supports TLS and Network Level Authentication; scope to support subnets.", fn:"Remote desktop.", keep:"Internal scoped", when:"Admin jump hosts."},
-  {svc:"SMB", port:"445", transport:"TCP", secure:"No", why:"Used for Windows file and printer sharing; restrict to internal networks.", fn:"File/printer sharing.", keep:"Block edge", when:"Shares, AD operations."},
-  {svc:"SNMP", port:"161", transport:"UDP", secure:"No", why:"Lightweight management polling; prefer v3 for auth/integrity; traps on 162/UDP.", fn:"Device monitoring.", keep:"Internal only", when:"NMS polling/traps."},
-  {svc:"Syslog", port:"514", transport:"Both", secure:"No", why:"Default UDP is connectionless; TCP variants improve reliability; TLS offloaded or separate ports.", fn:"Event logging.", keep:"Internal", when:"Forward logs to SIEM."},
-  {svc:"Kerberos", port:"88", transport:"Both", secure:"Yes", why:"Ticket-based authentication; UDP for small exchanges, TCP for larger or policy.", fn:"Authentication.", keep:"Internal", when:"Domain logon and service auth."},
-  {svc:"IKE/IPsec", port:"500", transport:"UDP", secure:"Yes", why:"Negotiates IPsec SAs during phase 1; NAT-T later uses 4500/UDP.", fn:"IPsec negotiation.", keep:"VPN edge", when:"Site-to-site or remote access."},
-  {svc:"SIP", port:"5060", transport:"Both", secure:"No", why:"VoIP signaling without TLS; media rides RTP elsewhere.", fn:"VoIP signaling.", keep:"Scoped", when:"Phone registration and call setup."},
-  {svc:"MySQL", port:"3306", transport:"TCP", secure:"No", why:"Stateful database connections; wrap in TLS as supported by client and server.", fn:"RDBMS connections.", keep:"Internal", when:"App ↔ DB"},
-  {svc:"MSSQL", port:"1433", transport:"TCP", secure:"No", why:"Microsoft SQL Server default listener; secure via TLS and firewalls.", fn:"RDBMS connections.", keep:"Internal", when:"App ↔ DB"},
-  {svc:"PostgreSQL", port:"5432", transport:"TCP", secure:"No", why:"Postgres default port; supports TLS; restrict exposure.", fn:"RDBMS connections.", keep:"Internal", when:"App ↔ DB"},
-  {svc:"Oracle DB", port:"1521", transport:"TCP", secure:"No", why:"Oracle listener service; typically protected via TLS and network policy.", fn:"RDBMS connections.", keep:"Internal", when:"App ↔ DB"},
-  {svc:"RADIUS", port:"1812", transport:"UDP", secure:"Yes", why:"Centralized AAA for network access; pairs with accounting on 1813/UDP.", fn:"Authentication/authorization.", keep:"Internal", when:"802.1X, VPN, Wi-Fi"},
-  {svc:"TACACS+", port:"49", transport:"TCP", secure:"Yes", why:"Device admin AAA over TCP; separates auth, authz, and accounting.", fn:"Admin AAA.", keep:"Internal", when:"Network device logins"},
-  {svc:"L2TP", port:"1701", transport:"UDP", secure:"No", why:"Tunneling without native encryption; typically combined with IPsec.", fn:"L2 tunneling.", keep:"VPN internal", when:"L2TP/IPsec deployments"},
-  {svc:"PPTP", port:"1723", transport:"TCP", secure:"No", why:"Deprecated VPN protocol with weak security; avoid for new deployments.", fn:"Legacy VPN.", keep:"Block", when:"Legacy only; migrate"},
-  {svc:"SMTPS", port:"465", transport:"TCP", secure:"Yes", why:"Implicit TLS for SMTP; some environments use 465 as secure submission.", fn:"Secure SMTP.", keep:"Mail edge", when:"Alternate secure submission"},
-  {svc:"DoT (DNS over TLS)", port:"853", transport:"TCP", secure:"Yes", why:"Encrypts resolver-to-upstream DNS to prevent eavesdropping and tampering.", fn:"Encrypted DNS.", keep:"Edge/internal", when:"Resolver privacy"}
+  {svc:"HTTPS", port:"443", transport:"TCP", secure:"Yes", why:"TLS provides confidentiality and integrity for web traffic.", fn:"Encrypted web browsing.", keep:"Yes (edge)", when:"Public sites and APIs; force 80→443."},
+  {svc:"HTTP", port:"80", transport:"TCP", secure:"No",  why:"Plain HTTP is cleartext.", fn:"Unencrypted web.", keep:"Maybe (edge — redirect)", when:"Redirect to HTTPS."},
+  {svc:"SSH",  port:"22",  transport:"TCP", secure:"Yes", why:"Cryptographic remote shell.", fn:"Secure shell & tunneling.", keep:"Scoped only", when:"Admin access, SFTP/SCP."},
+  {svc:"Telnet", port:"23", transport:"TCP", secure:"No", why:"Plaintext terminal.", fn:"Plain terminal.", keep:"Block", when:"Legacy only."},
+  {svc:"TFTP", port:"69", transport:"UDP", secure:"No",  why:"No auth/encryption.", fn:"Trivial file transfer.", keep:"Internal only", when:"PXE boot, firmware."},
+  {svc:"LDAP", port:"389", transport:"Both", secure:"No", why:"Clear until STARTTLS.", fn:"Directory lookups.", keep:"Internal", when:"Prefer STARTTLS."},
+  {svc:"LDAPS", port:"636", transport:"TCP", secure:"Yes", why:"LDAP over TLS.", fn:"Encrypted directory.", keep:"Scoped", when:"Encrypted queries."},
+  {svc:"DNS",  port:"53",  transport:"Both", secure:"No",  why:"UDP queries; TCP for AXFR/large.", fn:"Name resolution.", keep:"Edge yes (filtered)", when:"User queries, AXFR TCP."},
+  {svc:"NTP",  port:"123", transport:"UDP", secure:"No",  why:"Lightweight time sync.", fn:"Clock sync.", keep:"Internal", when:"Domain time."},
+  {svc:"Submission (SMTP)", port:"587", transport:"TCP", secure:"Yes", why:"Auth mail submission (STARTTLS).", fn:"Client submission.", keep:"Mail edge", when:"MUAs sending mail."},
+  {svc:"SMTP", port:"25", transport:"TCP", secure:"No",  why:"Server relay, opportunistic TLS.", fn:"Server relay.", keep:"Mail edge", when:"MTA↔MTA."},
+  {svc:"POP3S", port:"995", transport:"TCP", secure:"Yes", why:"POP over TLS.", fn:"Secure POP.", keep:"If used", when:"POP clients."},
+  {svc:"IMAPS", port:"993", transport:"TCP", secure:"Yes", why:"IMAP over TLS.", fn:"Secure IMAP.", keep:"If used", when:"Mail sync."},
+  {svc:"IMAP", port:"143", transport:"TCP", secure:"No",  why:"Clear unless STARTTLS.", fn:"Mailbox sync.", keep:"Prefer block", when:"Legacy scanners."},
+  {svc:"SFTP", port:"22", transport:"TCP", secure:"Yes",  why:"File transfer over SSH.", fn:"Secure file transfer.", keep:"Scoped", when:"Automations."},
+  {svc:"FTPS", port:"990", transport:"TCP", secure:"Yes", why:"FTP with TLS.", fn:"FTP+TLS.", keep:"Partner edge", when:"B2B transfers."},
+  {svc:"RDP",  port:"3389", transport:"TCP", secure:"Yes", why:"TLS + NLA.", fn:"Remote desktop.", keep:"Internal", when:"Admin jump hosts."},
+  {svc:"SMB",  port:"445", transport:"TCP", secure:"No",  why:"Windows file/printer.", fn:"File sharing.", keep:"Block edge", when:"Internal shares."},
+  {svc:"SNMP", port:"161", transport:"UDP", secure:"No",  why:"Mgmt polling; use v3.", fn:"Device monitoring.", keep:"Internal", when:"NMS polling."},
+  {svc:"Syslog", port:"514", transport:"Both", secure:"No", why:"UDP default; TCP exists.", fn:"Event logging.", keep:"Internal", when:"Log forwarding."},
+  {svc:"Kerberos", port:"88", transport:"Both", secure:"Yes", why:"Ticket-based auth.", fn:"Authentication.", keep:"Internal", when:"Domain auth."},
+  {svc:"IKE/IPsec", port:"500", transport:"UDP", secure:"Yes", why:"Negotiates IPsec SAs.", fn:"IPsec negotiation.", keep:"VPN edge", when:"Site-to-site/remote."},
+  {svc:"SIP", port:"5060", transport:"Both", secure:"No",  why:"VoIP signaling (no TLS).", fn:"VoIP signaling.", keep:"Scoped", when:"PBX/phones."},
+  {svc:"MySQL", port:"3306", transport:"TCP", secure:"No",  why:"DB listener; use TLS.", fn:"RDBMS connections.", keep:"Internal", when:"App↔DB."},
+  {svc:"MSSQL", port:"1433", transport:"TCP", secure:"No",  why:"SQL Server default.", fn:"RDBMS connections.", keep:"Internal", when:"App↔DB."},
+  {svc:"PostgreSQL", port:"5432", transport:"TCP", secure:"No", why:"Postgres default.", fn:"RDBMS connections.", keep:"Internal", when:"App↔DB."},
+  {svc:"Oracle DB", port:"1521", transport:"TCP", secure:"No", why:"Oracle listener.", fn:"RDBMS connections.", keep:"Internal", when:"App↔DB."},
+  {svc:"RADIUS", port:"1812", transport:"UDP", secure:"Yes", why:"AAA for network access.", fn:"Auth/author.", keep:"Internal", when:"802.1X/VPN."},
+  {svc:"TACACS+", port:"49", transport:"TCP", secure:"Yes",  why:"Device admin AAA.", fn:"Admin AAA.", keep:"Internal", when:"Device logins."},
+  {svc:"L2TP", port:"1701", transport:"UDP", secure:"No",  why:"No native crypto.", fn:"L2 tunneling.", keep:"With IPsec", when:"L2TP/IPsec."},
+  {svc:"PPTP", port:"1723", transport:"TCP", secure:"No",  why:"Deprecated/weak.", fn:"Legacy VPN.", keep:"Block", when:"Migrate off."},
+  {svc:"SMTPS", port:"465", transport:"TCP", secure:"Yes", why:"Implicit TLS SMTP.", fn:"Secure SMTP.", keep:"Mail edge", when:"Secure submission."},
+  {svc:"DoT (DNS over TLS)", port:"853", transport:"TCP", secure:"Yes", why:"Encrypted DNS.", fn:"Encrypted DNS.", keep:"Edge/internal", when:"Resolver privacy."}
 ];
 
-// Mnemonics & sticky facts (same tone as Common Ports page)
-const MNEMONICS = {
-  "HTTPS":"4-4-3 = three locks.",
-  "HTTP":"The open ‘80s web.",
-  "SSH":"Two keys to a Secure SHell (22).",
-  "Telnet":"23 is “too free”.",
-  "TFTP":"Simple 69 (no auth).",
-  "LDAP":"389 starts TLS (STARTTLS).",
-  "LDAPS":"Dedicated TLS on 636.",
-  "DNS":"5 + 3 = D-N-S.",
-  "NTP":"1-2-3… keep time with me.",
-  "Submission (SMTP)":"5-8-7: send, auth, encrypt.",
-  "SMTP":"25 to deliver mail (relay).",
-  "POP3S":"995 = POP over TLS.",
-  "IMAPS":"993 = IMAP over TLS.",
-  "IMAP":"1-4-3: IMAP I-mail-3.",
-  "SFTP":"Same as SSH: 22.",
-  "FTPS":"FTP leveled up: 990.",
-  "RDP":"33-8-9 = 3D screen.",
-  "SMB":"Windows shares: 4-4-5.",
-  "SNMP":"Poll 161, trap 162.",
-  "Syslog":"514: UDP by default; TCP exists.",
-  "Kerberos":"Tickets need time; NTP matters.",
-  "IKE/IPsec":"Half-a-thousand starts the tunnel.",
-  "SIP":"5060: signaling sans TLS.",
-  "MySQL":"33-0-6: ‘My’ data mix.",
-  "MSSQL":"14-33: SQL for MS.",
-  "PostgreSQL":"5-4-3-2: Postgres countdown.",
-  "Oracle DB":"15-21: Oracle’s gate.",
-  "RADIUS":"Auth 1812; accounting 1813.",
-  "TACACS+":"Forty-nine for TACACS line.",
-  "L2TP":"17-01: layer-2 tunnel.",
-  "PPTP":"17-23: legacy tunnel, retire.",
-  "SMTPS":"4-6-5: secure sleeve.",
-  "DoT (DNS over TLS)":"8-5-3: DNS with a lock."
-};
+const MNEMONICS = {"HTTPS":"4-4-3 = three locks.","HTTP":"The open ‘80s web.","SSH":"Two keys → 22.","Telnet":"23 is “too free”.","TFTP":"Simple 69.","LDAP":"389 STARTTLS.","LDAPS":"636 = TLS.","DNS":"5 + 3 = DNS.","NTP":"1-2-3 time.","Submission (SMTP)":"587 = submit.","SMTP":"25 relay.","POP3S":"995 TLS.","IMAPS":"993 TLS.","IMAP":"143 clear.","SFTP":"22 via SSH.","FTPS":"990 TLS.","RDP":"3389 screen.","SMB":"445 shares.","SNMP":"161/162.","Syslog":"514 UDP.","Kerberos":"Tickets need time.","IKE/IPsec":"500 starts tunnel.","SIP":"5060 signal.","MySQL":"3306 DB.","MSSQL":"1433 DB.","PostgreSQL":"5432 DB.","Oracle DB":"1521 listener.","RADIUS":"1812 auth.","TACACS+":"49 admin.","L2TP":"1701 no crypto.","PPTP":"1723 legacy.","SMTPS":"465 TLS.","DoT (DNS over TLS)":"853 TLS DNS."};
+const FACTS = {"HTTPS":"Redirect 80→443.","HTTP":"Use only for redirects.","SSH":"Use keys; limit exposure.","Telnet":"Replace with SSH.","TFTP":"Provisioning VLAN only.","LDAP":"Prefer STARTTLS/LDAPS.","LDAPS":"Validate cert chain.","DNS":"Restrict AXFR.","NTP":"Auth your time.","Submission (SMTP)":"Clients use 587.","SMTP":"Avoid open relay.","POP3S":"TLS from start.","IMAPS":"TLS from start.","IMAP":"Upgrade or block.","SFTP":"Chroot/key limits.","FTPS":"Doc passive ranges.","RDP":"MFA/VPN recommended.","SMB":"Disable v1; segment.","SNMP":"Prefer v3.","Syslog":"TCP/TLS for reliability.","Kerberos":"NTP is critical.","IKE/IPsec":"Harden gateways.","SIP":"Watch toll fraud.","MySQL":"Bind internal.","MSSQL":"Internal only.","PostgreSQL":"Limit exposure.","Oracle DB":"Protect listener.","RADIUS":"802.1X depends on it.","TACACS+":"Central admin audit.","L2TP":"Pair with IPsec.","PPTP":"Migrate away.","SMTPS":"Alt secure submit.","DoT (DNS over TLS)":"Encrypt resolver→upstream."};
 
-const FACTS = {
-  "HTTPS":"HSTS plus free certs accelerated the shift to 443; redirect 80→443 to prevent downgrade.",
-  "HTTP":"Cleartext 80 exposes cookies/creds on open Wi-Fi; only use for redirects.",
-  "SSH":"22 is heavily brute-forced on the internet; keys + NLA/fail2ban mitigate.",
-  "Telnet":"Default-credential Telnet remains an IoT risk; retire in favor of SSH.",
-  "TFTP":"Open TFTP leaks boot images/configs; restrict to provisioning VLANs.",
-  "LDAP":"Unsigned binds on 389 can leak creds; use STARTTLS or LDAPS.",
-  "LDAPS":"Certificate trust/hostnames are frequent misconfigs; validate chain/ CN.",
-  "DNS":"Open resolvers enable amplification; limit AXFR to authorized peers.",
-  "NTP":"Legacy ‘monlist’ was abused for reflection; use authenticated sources.",
-  "Submission (SMTP)":"Many ISPs block client 25; 587 with auth reduces spam from infected hosts.",
-  "SMTP":"Misconfigured open relays on 25 still surface in spam campaigns.",
-  "POP3S":"POP deletes after download by default; TLS protects creds in transit.",
-  "IMAPS":"Start-TLS stripping is moot on 993 since TLS is from the first packet.",
-  "IMAP":"Clear IMAP leaks creds; upgrade or move to 993.",
-  "SFTP":"Use chroot/key restrictions for safer automations.",
-  "FTPS":"Document passive port ranges; otherwise firewalls block data channels.",
-  "RDP":"Exposed 3389 often leads to ransomware via brute force; use MFA/VPN.",
-  "SMB":"SMBv1 was exploited by a worm; disable v1 and segment networks.",
-  "SNMP":"Use SNMPv3 authPriv; default ‘public’ is still found in the wild.",
-  "Syslog":"UDP/514 can drop under load; TCP/TLS improves reliability.",
-  "Kerberos":"Time skew breaks tickets; keep NTP healthy, protect domain controllers.",
-  "IKE/IPsec":"Harden VPN gateways and require MFA; watch for credential stuffing.",
-  "SIP":"PBXs exposed on 5060 face toll fraud and registration brute force.",
-  "MySQL":"Public 3306 exposure risks data theft; bind internally and require TLS.",
-  "MSSQL":"1433 should be internal only; use TLS and cert validation.",
-  "PostgreSQL":"Limit 5432 exposure; prefer TLS and role scoping.",
-  "Oracle DB":"1521 listener should live behind firewalls and TLS.",
-  "RADIUS":"802.1X networks depend on timely 1812/1813 reachability.",
-  "TACACS+":"Centralized device admin auditing helps incident response.",
-  "L2TP":"Combine with IPsec; L2TP itself isn’t encrypted.",
-  "PPTP":"Deprecated due to weak crypto; migrate to modern VPNs.",
-  "SMTPS":"465 remains in use in some environments for implicit TLS submission.",
-  "DoT (DNS over TLS)":"Encrypt resolver-to-upstream to prevent passive DNS snooping."
-};
-
-// ---------- Scenario generation (exam-style) ----------
-const THEMES = [
-  'payment','health','finance','education','retail','media','manufacturing','gov','startup','research',
-  'logistics','travel','gaming','iot','energy','banking','insurance','legal','telecom','hospitality'
-];
+/* ===== Scenario builders (neutral titles, ≥50 words) ===== */
+const THEMES = ['payment','health','finance','education','retail','media','manufacturing','government','startup','research','logistics','travel','gaming','iot','energy','banking','insurance','legal','telecom','hospitality'];
 const VERBS = ['must','needs to','is required to','has to','should','will','plans to','is expected to','is configured to','intends to'];
-const CONTROLS = ['MFA enforced','network ACLs scoped','TLS certificates pinned','SIEM logging enabled','least privilege','change control ticketed','disaster recovery tested','backups validated','NTP synchronized','secrets rotated'];
-
+const CONTROLS = ['MFA enforced','scoped ACLs','TLS certificates pinned','SIEM logging','least privilege','change control','DR tested','backups validated','NTP synchronized','secrets rotated'];
+const TITLE_FORMS = [
+  'User Access Gateway for {adjective} {noun} over a {channel} path',
+  'Internal Platform Providing {adjective} {noun} Across Zones',
+  'Partner Integration Handling {adjective} {noun} Under Policy',
+  'Operations Service Delivering {adjective} {noun} During Peak',
+  'Edge Component Offering {adjective} {noun} With Guardrails',
+  'Backend Service Exposing {adjective} {noun} to Clients',
+  'Remote Capability Supporting {adjective} {noun} at Scale',
+  'Service Backbone Enabling {adjective} {noun} Across Sites',
+  'Client Workflow Depending on {adjective} {noun} Safely',
+  'Modernization Track Mandating {adjective} {noun} in Prod',
+  'Branch Connectivity Facilitating {adjective} {noun}',
+  'On-Prem Connector Supplying {adjective} {noun}',
+  'Multi-tenant Fabric Orchestrating {adjective} {noun}',
+  'Public Edge Proxy Fronting {adjective} {noun}',
+  'Private Core Hub Routing {adjective} {noun}',
+  'Resilient Node Preserving {adjective} {noun}',
+  'Access Tier Controlling {adjective} {noun}',
+  'Compliance Plane Auditing {adjective} {noun}',
+  'Customer Portal Handling {adjective} {noun}',
+  'Automation Bus Transporting {adjective} {noun}'
+];
+const ADJ = { Yes:['encrypted','confidential','protected','TLS-wrapped'], No:['clear','legacy','unauthenticated','plain'] };
+const NOUNS = {
+  web:['content delivery','API sessions','portal traffic','browser flows'],
+  shell:['admin sessions','command channels','maintenance access','secure console'],
+  dir:['directory lookups','identity queries','account attributes','group searches'],
+  dns:['name resolution','resolver queries','zone transfers','record updates'],
+  mail:['message submission','mail relay','mailbox sync','notification flow'],
+  time:['time sync','clock discipline','time beacons','fleet time'],
+  file:['file transfers','artifact exchange','binary drops','package pulls'],
+  db:['database connections','query traffic','replication lanes','metadata lookups'],
+  auth:['login flows','ticket exchange','federation handoffs','session issuance'],
+  log:['event forwarding','audit telemetry','syslog streams','alert delivery'],
+  voip:['call signaling','endpoint registration','dial plan flows','presence updates'],
+  vpn:['tunnel negotiation','secure site links','remote sessions','branch tunnels']
+};
+function nounGroup(fn){
+  const f = fn.toLowerCase();
+  if(/web|browser|api/.test(f)) return 'web';
+  if(/shell|tunnel/.test(f)) return 'shell';
+  if(/directory/.test(f)) return 'dir';
+  if(/name|dns/.test(f)) return 'dns';
+  if(/mail/.test(f)) return 'mail';
+  if(/time|clock/.test(f)) return 'time';
+  if(/file/.test(f)) return 'file';
+  if(/db|rdbms|database/.test(f)) return 'db';
+  if(/auth|ticket/.test(f)) return 'auth';
+  if(/event|log/.test(f)) return 'log';
+  if(/voip|phone|call/.test(f)) return 'voip';
+  if(/ipsec|vpn/.test(f)) return 'vpn';
+  return 'web';
+}
+function channelWord(t){ return t==='UDP'?'connectionless':'stateful'; }
 function ensureMinWords(text, min){
-  const filler = ' Use the standard well-known port, apply least privilege, document exceptions with rollback, and set a time limit for temporary access.';
+  const filler = ' Apply least privilege, document change control, and restrict exposure to the smallest necessary scope to reduce risk while meeting operational requirements.';
   while(text.trim().split(/\s+/).length < min){ text += filler; }
   return text;
 }
-
-function makeScenario(i){
-  const svc = CATALOG[i % CATALOG.length];
+function neutralTitle(base, i){
+  const ng = nounGroup(base.fn);
+  const noun = (NOUNS[ng]||['service'])[i % (NOUNS[ng]||['service']).length];
+  const form = TITLE_FORMS[i % TITLE_FORMS.length];
+  const adjective = (ADJ[base.secure]||['relevant'])[i % (ADJ[base.secure]||['relevant']).length];
+  const channel = channelWord(base.transport);
+  return form.replace('{adjective}',adjective).replace('{noun}',noun).replace('{channel}',channel);
+}
+function neutralCues(base){
+  const ng = nounGroup(base.fn);
+  const pool = (NOUNS[ng]||[]).slice(0,2);
+  return [
+    base.secure==='Yes'?'encrypted':'clear',
+    base.transport==='UDP'?'connectionless':'stateful',
+    ...pool
+  ];
+}
+function buildScenario(i){
+  const base = CATALOG[i % CATALOG.length];
   const theme = THEMES[i % THEMES.length];
-  const verb = VERBS[(i*7) % VERBS.length];
+  const verb  = VERBS[(i*7) % VERBS.length];
   const control = CONTROLS[(i*5) % CONTROLS.length];
 
-  const title = `${i+1}) ${svc.svc} in a ${theme} environment`;
-  let text = `A ${theme} application ${verb} use a service consistent with expected behavior and security properties. Stakeholders note compliance expectations and guardrails (e.g., ${control}). Which port/transport/security/service mapping best meets availability and confidentiality without unnecessary exposure?`;
-  text = ensureMinWords(text, 30);
+  const title = `${i+1}) ${neutralTitle(base, i)}`;
+  let text = `A ${theme} system ${verb} provide ${base.secure==='Yes'?'encrypted':'clear'} ${base.fn.toLowerCase()} to end users and automated clients. The operations team prefers a ${base.transport==='UDP'?'connectionless exchange to minimize session overhead':'stateful stream to simplify reliability and control'}. Apply ${control}, consider firewall placement, and select the correct port, transport, security setting, and service to satisfy availability without unnecessary exposure or downgrade risks.`;
+  text = ensureMinWords(text, 50);
 
-  const cues = [svc.svc, svc.port, svc.transport, svc.secure==='Yes'?'encrypted':'clear'];
-  const ans = { port: svc.port, transport: svc.transport, secure: svc.secure, service: svc.svc };
-  const proto = svc.transport;
-  const meta = { fn: svc.fn, keep: svc.keep, when: svc.when, why: svc.why };
-  return { title, text, cues, ans, proto, meta };
+  const cues = neutralCues(base);
+  const ans  = { port: base.port, transport: base.transport, secure: base.secure, service: base.svc };
+  const meta = { fn: base.fn, keep: base.keep, when: base.when, why: base.why };
+
+  return { title, text, cues, ans, meta };
 }
+function generateScenarios(n){ const out=[]; for(let i=0;i<n;i++) out.push(buildScenario(i)); return out; }
+const SCENARIOS = generateScenarios(20);
 
-function generateScenarios(n){ const arr=[]; for(let i=0;i<n;i++){ arr.push(makeScenario(i)); } return arr; }
-const SCENARIOS = generateScenarios(100);
-
-// ---------- DOM refs ----------
-const tTitle = document.getElementById('title');
-const tDesc  = document.getElementById('desc');
-const portInput = document.getElementById('portInput');
-const serviceSel = document.getElementById('serviceSel');
-const bPort = document.getElementById('bPort');
-const bTransport = document.getElementById('bTransport');
-const bSecure = document.getElementById('bSecure');
-const bService = document.getElementById('bService');
-const scoreEl = document.getElementById('score');
-const explainEl = document.getElementById('explain');
-const kmetaEl = document.getElementById('kmeta');
-const scenarioSel = document.getElementById('scenarioSel');
-const mnemoText = document.getElementById('mnemoText');
-const storyText = document.getElementById('storyText');
-
+/* ===== DOM ===== */
+const tTitle = $('title');
+const tDesc  = $('desc');
+const portInput = $('portInput');
+const serviceSel = $('serviceSel');
+const bPort = $('bPort');
+const bTransport = $('bTransport');
+const bSecure = $('bSecure');
+const bService = $('bService');
+const scoreEl = $('score');
+const explainEl = $('explain');
+const kmetaEl = $('kmeta');
+const scenarioSel = $('scenarioSel');
+const countLabel = $('countLabel');
+const mnemoText = $('mnemoText');
+const storyText = $('storyText');
 let IDX = 0;
 const titleFor = (i,t)=>`${i+1}) ${t.replace(/^\d+\)\s*/, '')}`;
 
@@ -341,7 +334,6 @@ function clearAll(){
   mnemoText.textContent=""; storyText.textContent="";
   setPristine(tDesc, tDesc.dataset.orig || tDesc.innerHTML);
 }
-
 function loadScenario(i){
   IDX = Math.max(0, Math.min(SCENARIOS.length-1, i));
   const s = SCENARIOS[IDX];
@@ -350,7 +342,6 @@ function loadScenario(i){
   clearAll();
   scenarioSel.value = String(IDX);
 }
-
 function showMeta(s){
   kmetaEl.innerHTML = `
     <div class="k"><b>Function</b>${s.meta.fn}</div>
@@ -358,26 +349,21 @@ function showMeta(s){
       <div style="margin-top:6px"><b>Typical Use</b><br/>${s.meta.when}</div>
     </div>`;
 }
-
 function addMemoryAids(s){
   const key = s.ans.service;
   mnemoText.textContent = MNEMONICS[key] || '';
   storyText.textContent = FACTS[key] || '';
 }
-
-function explainWhy(s, chosen){
-  const diffs = [];
-  if(String(chosen.port||'') !== s.ans.port) diffs.push(`Port should be ${s.ans.port} for ${s.ans.service}`);
-  if(chosen.transport !== s.ans.transport) diffs.push(`Transport must be ${s.ans.transport}`);
-  if(chosen.secure !== s.ans.secure) diffs.push(`Security should be ${s.ans.secure}`);
-  if(chosen.service !== s.ans.service) diffs.push(`Service should be ${s.ans.service}`);
-  if(diffs.length===0){
-    return `Correct — ${s.ans.service} uses ${s.ans.transport} on port ${s.ans.port}. ${s.meta.why}`;
-  } else {
-    return `Not quite — ${diffs.join('; ')}. ${s.meta.why}`;
-  }
+function longWhy(s, chosen, correct){
+  const core = `${s.ans.service} operates over ${s.ans.transport} on port ${s.ans.port} and is ${s.ans.secure==='Yes'?'typically encrypted end-to-end':'commonly deployed in cleartext unless upgraded'}. In practice, teams use it for ${s.meta.fn.toLowerCase()} and scope exposure based on role and zone. ${s.meta.why} For production, ${s.meta.keep.toLowerCase()} and usage such as ${s.meta.when.toLowerCase()}.`;
+  if (correct) return `Correct — ${core} The selection aligns with the scenario’s channel preference and security expectations while reducing attack surface and avoiding downgrade or misrouting across control points.`;
+  const hints = [];
+  if(String(chosen.port||'') !== s.ans.port) hints.push(`use port ${s.ans.port}`);
+  if(chosen.transport !== s.ans.transport) hints.push(`select ${s.ans.transport}`);
+  if(chosen.secure !== s.ans.secure) hints.push(`mark security as ${s.ans.secure}`);
+  if(chosen.service !== s.ans.service) hints.push(`choose the ${s.ans.service} service`);
+  return `Not quite — adjust to ${hints.join(', ')}. ${core} Selecting the canonical mapping meets availability, supports policy enforcement, and prevents avoidable troubleshooting pain later.`;
 }
-
 function check(){
   const s = SCENARIOS[IDX];
   const chosen = {
@@ -395,44 +381,46 @@ function check(){
   scoreEl.textContent = allOk ? "Correct" : "Try again";
   scoreEl.className = "result " + (allOk ? "ok":"no");
   highlight(tDesc, s.cues);
-  explainEl.textContent = explainWhy(s, chosen);
+  explainEl.textContent = longWhy(s, chosen, allOk);
   showMeta(s);
   addMemoryAids(s);
 }
-
 function reveal(){
   const s = SCENARIOS[IDX];
   portInput.value = s.ans.port; setRadio("transport", s.ans.transport); setRadio("secure", s.ans.secure); serviceSel.value = s.ans.service;
   [bPort,bTransport,bSecure,bService].forEach(b=>decorate(b,true));
   scoreEl.textContent = "Revealed"; scoreEl.className = "result ok";
   highlight(tDesc, s.cues);
-  explainEl.textContent = `Answer shown — ${s.ans.service} uses ${s.ans.transport} on ${s.ans.port}. ${s.meta.why}`;
+  explainEl.textContent = longWhy(s, s.ans, true);
   showMeta(s);
   addMemoryAids(s);
 }
-
 function shuffle(){
-  for(let i=SCENARIOS.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [SCENARIOS[i],SCENARIOS[j]]=[SCENARIOS[j],SCENARIOS[i]]; }
+  for(let i=SCENARIOS.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [SCENARIOS[i],SCENARIOS[j]]=[SCENARIOS[j],SCENARIOS[i]]; }
   scenarioSel.innerHTML = SCENARIOS.map((s,i)=>`<option value="${i}">${titleFor(i,s.title)}</option>`).join('');
+  countLabel.textContent = `(${SCENARIOS.length} scenarios loaded)`;
   loadScenario(0);
 }
-
 function next(){ loadScenario(Math.min(IDX+1, SCENARIOS.length-1)); }
 function prev(){ loadScenario(Math.max(IDX-1, 0)); }
 
-// Wire up
-['checkBtn','checkBtn2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',check); });
-['revealBtn','revealBtn2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',reveal); });
-['resetBtn','resetBtn2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',()=>loadScenario(IDX)); });
-const sh=document.getElementById('shuffleBtn'); if(sh) sh.addEventListener('click',shuffle);
-document.getElementById('nextBtn').addEventListener('click',next);
-document.getElementById('prevBtn').addEventListener('click',prev);
-scenarioSel.addEventListener('change',e=>loadScenario(Number(e.target.value)));
+/* ===== Init ===== */
+function init(){
+  scenarioSel.innerHTML = SCENARIOS.map((s,i)=>`<option value="${i}">${titleFor(i,s.title)}</option>`).join('');
+  countLabel.textContent = `(${SCENARIOS.length} scenarios loaded)`;
 
-// Init selector & first scenario
-scenarioSel.innerHTML = SCENARIOS.map((s,i)=>`<option value="${i}">${titleFor(i,s.title)}</option>`).join('');
-loadScenario(0);
-document.getElementById('year').textContent = new Date().getFullYear();
+  ['checkBtn','checkBtn2'].forEach(id=>$(id)?.addEventListener('click',check));
+  ['revealBtn','revealBtn2'].forEach(id=>$(id)?.addEventListener('click',reveal));
+  ['resetBtn','resetBtn2'].forEach(id=>$(id)?.addEventListener('click',()=>loadScenario(IDX)));
+  $('shuffleBtn')?.addEventListener('click',shuffle);
+  $('nextBtn')?.addEventListener('click',next);
+  $('prevBtn')?.addEventListener('click',prev);
+  scenarioSel.addEventListener('change',e=>loadScenario(Number(e.target.value)));
+
+  loadScenario(0);
+  $('year').textContent = new Date().getFullYear();
+}
+window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
