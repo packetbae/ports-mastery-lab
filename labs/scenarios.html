@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Scenario Mode — Ports Mastery</title>
+<meta name="color-scheme" content="light dark"/>
+<style>
+  :root{--bg:#f0f0f2;--fg:#0f1115;--muted:#6b6f76;--card:#ffffff;--accent:#0a84ff;--radius:18px;--shadow:0 10px 28px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.06);--ok:#1d9f49;--bad:#ff3b30;--line:#d2d2d7}
+  @media (prefers-color-scheme: dark){:root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08);--line:#2b2f35}}
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:var(--border)}
+  .nav{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:10px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(10,132,255,.18)}
+  .spacer{flex:1}
+  .btn, .chip, select{background:transparent;border:var(--border);border-radius:999px;padding:8px 14px;color:inherit;text-decoration:none;font-weight:600;cursor:pointer}
+  main{max-width:1120px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:32px;margin:6px 0 10px}
+  .lead{margin:0 0 14px;color:var(--muted)}
+  .panel{border:var(--border);background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:12px;margin-top:12px}
+  .box{background:var(--card);border:var(--border);border-radius:12px;padding:12px}
+  .box label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+  input[type="number"], select{width:100%;padding:10px;border:var(--border);border-radius:10px;background:var(--card);color:inherit}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .chip input{accent-color:var(--accent)}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .result{font-weight:800;margin-top:6px}
+  .ok{color:var(--ok)} .no{color:var(--bad)}
+  .good input,.good select{border-color:var(--ok);box-shadow:inset 0 0 0 9999px rgba(29,159,73,.08)}
+  .bad  input,.bad  select{border-color:var(--bad);box-shadow:inset 0 0 0 9999px rgba(255,59,48,.08)}
+  mark.hl-ok{background:rgba(255,235,59,.4);border-radius:2px;padding:0 2px;color:inherit}
+  .explain{color:var(--muted);white-space:pre-line;margin-top:8px}
+  .kgrid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:8px;margin-top:8px}
+  .k{background:var(--card);border:var(--border);border-radius:10px;padding:10px}
+  .k b{display:block;margin-bottom:4px}
+  footer{max-width:1120px;margin:40px auto 60px;padding:0 20px;color:var(--muted);font-size:13px}
+  @media(max-width:960px){.grid{grid-template-columns:1fr} h1{font-size:28px} .kgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="nav">
+    <a class="btn" href="../index.html" aria-label="Back">←</a>
+    <div class="brand"><span class="dot" aria-hidden="true"></span><span>Scenario Mode</span></div>
+    <span class="spacer"></span>
+    <select id="scenarioSel" title="Choose Scenario"></select>
+    <button class="btn" id="revealBtn">Reveal</button>
+    <button class="btn" id="checkBtn">Check</button>
+    <button class="btn" id="resetBtn">Reset</button>
+    <button class="btn" id="shuffleBtn">Shuffle</button>
+    <button class="btn" id="prevBtn" aria-label="Previous">◀</button>
+    <button class="btn" id="nextBtn" aria-label="Next">▶</button>
+  </div>
+</header>
+
+<main>
+  <h1>Scenario Mode</h1>
+  <p class="lead">Read the scenario, decide the correct <b>port</b>, <b>transport</b>, <b>security</b>, and <b>service</b>, then check. If wrong, you’ll see why and what to use instead; if right, you’ll see the reasoning.</p>
+
+  <section class="panel" id="pbq">
+    <h2 id="title" style="margin:0 0 6px">Loading…</h2>
+    <p id="desc" data-orig="" style="margin:0 0 12px"></p>
+
+    <div class="grid">
+      <div class="box" id="bPort">
+        <label for="portInput">Port Number</label>
+        <input id="portInput" type="number" min="1" max="65535" placeholder="e.g., 443"/>
+      </div>
+
+      <div class="box" id="bTransport">
+        <label>Transport</label>
+        <div class="row" role="radiogroup" aria-label="Transport">
+          <label class="chip"><input type="radio" name="transport" value="TCP">TCP</label>
+          <label class="chip"><input type="radio" name="transport" value="UDP">UDP</label>
+          <label class="chip"><input type="radio" name="transport" value="Both">Both</label>
+        </div>
+      </div>
+
+      <div class="box" id="bSecure">
+        <label>Security</label>
+        <div class="row" role="radiogroup" aria-label="Security">
+          <label class="chip"><input type="radio" name="secure" value="Yes">Secure</label>
+          <label class="chip"><input type="radio" name="secure" value="No">Not Secure</label>
+        </div>
+      </div>
+
+      <div class="box" id="bService">
+        <label for="serviceSel">Service Name</label>
+        <select id="serviceSel">
+          <option value="">Select service…</option>
+          <option>HTTP</option><option>HTTPS</option><option>SSH</option><option>Telnet</option>
+          <option>FTP</option><option>FTPS</option><option>SFTP</option>
+          <option>SMTP</option><option>Submission (SMTP)</option><option>SMTPS</option>
+          <option>POP3</option><option>POP3S</option><option>IMAP</option><option>IMAPS</option>
+          <option>DNS</option><option>DHCP</option><option>TFTP</option>
+          <option>SNMP</option><option>Syslog</option><option>NTP</option>
+          <option>Kerberos</option><option>LDAP</option><option>LDAPS</option>
+          <option>SMB</option><option>RDP</option>
+          <option>SIP</option>
+          <option>MySQL</option><option>MSSQL</option><option>PostgreSQL</option><option>Oracle DB</option>
+          <option>RADIUS</option><option>TACACS+</option>
+          <option>IKE/IPsec</option><option>L2TP</option><option>PPTP</option>
+          <option>DoT (DNS over TLS)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="checkBtn2">Check</button>
+      <button class="btn" id="revealBtn2">Reveal</button>
+      <button class="btn" id="resetBtn2">Reset</button>
+      <div id="score" class="result"></div>
+    </div>
+
+    <div id="explain" class="explain"></div>
+    <div id="kmeta" class="kgrid" aria-live="polite"></div>
+  </section>
+</main>
+
+<footer>© <span id="year"></span> packetbae — All Rights Reserved</footer>
+
+<script>
+// ---------- Utilities ----------
+function setPristine(p, text){ p.dataset.orig = text; p.innerHTML = text; }
+function highlight(p, terms){
+  let html = p.dataset.orig || p.innerHTML;
+  (terms||[]).filter(Boolean).sort((a,b)=>b.length-a.length).forEach(t=>{
+    const esc = t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    html = html.replace(new RegExp('(' + esc + ')','gi'),'<mark class="hl-ok">$1<\/mark>');
+  });
+  p.innerHTML = html;
+}
+function decorate(el, ok){ el.classList.remove('good','bad'); el.classList.add(ok?'good':'bad'); }
+function getRadio(name){ const el = document.querySelector('input[name="'+name+'"]:checked'); return el?el.value:""; }
+function setRadio(name,val){ document.querySelectorAll('input[name="'+name+'"]').forEach(r=>r.checked=(r.value===val)); }
+function clearRadios(name){ document.querySelectorAll('input[name="'+name+'"]').forEach(r=>r.checked=false); }
+
+// ---------- Canonical services ----------
+const CATALOG = [
+  {svc:"HTTPS", port:"443", transport:"TCP", secure:"Yes", why:"TLS provides confidentiality and integrity for web traffic; browsers expect port 443 for secure sites.", fn:"Encrypted web browsing.", keep:"Yes (edge)", when:"Public sites and APIs; force 80→443."},
+  {svc:"HTTP", port:"80", transport:"TCP", secure:"No", why:"Plain HTTP is cleartext; use only for redirects or isolated legacy admin paths.", fn:"Unencrypted web.", keep:"Maybe (edge) — redirect", when:"Legacy web, redirect to HTTPS."},
+  {svc:"SSH", port:"22", transport:"TCP", secure:"Yes", why:"Cryptographic remote shell with strong authentication, port forwarding, and file copy via SFTP/SCP.", fn:"Secure shell & tunneling.", keep:"Scoped only", when:"Admin access, Git, SFTP/SCP."},
+  {svc:"Telnet", port:"23", transport:"TCP", secure:"No", why:"Telnet sends credentials and data in plaintext; replace with SSH for security.", fn:"Plain terminal.", keep:"No (block)", when:"Only for unavoidable legacy."},
+  {svc:"TFTP", port:"69", transport:"UDP", secure:"No", why:"Trivial file transfer has no auth or encryption; used for PXE and device boot images.", fn:"Unauthenticated file transfer.", keep:"Internal only", when:"PXE boot, firmware staging."},
+  {svc:"LDAP", port:"389", transport:"Both", secure:"No", why:"Directory lookups on 389 are clear unless upgraded with STARTTLS; many apps support the upgrade.", fn:"Directory lookups.", keep:"Internal only", when:"AD/LDAP queries; prefer STARTTLS."},
+  {svc:"LDAPS", port:"636", transport:"TCP", secure:"Yes", why:"Dedicated TLS for LDAP; encrypts credentials and attributes end-to-end.", fn:"Directory over TLS.", keep:"Scoped partner/internal", when:"Encrypted directory queries."},
+  {svc:"DNS", port:"53", transport:"Both", secure:"No", why:"Queries use UDP; zone transfers and large responses can switch to TCP on the same port.", fn:"Name resolution.", keep:"Edge yes; filter", when:"User resolution; AXFR over TCP."},
+  {svc:"NTP", port:"123", transport:"UDP", secure:"No", why:"Lightweight time sync with minimal overhead; no session establishment.", fn:"Clock sync.", keep:"Internal only", when:"Domain time, log correlation."},
+  {svc:"Submission (SMTP)", port:"587", transport:"TCP", secure:"Yes", why:"Authenticated mail submission with STARTTLS expected; distinct from server relay on 25.", fn:"Client submission.", keep:"Mail edge", when:"MUAs sending outbound mail."},
+  {svc:"SMTP", port:"25", transport:"TCP", secure:"No", why:"Traditional server-to-server email transport; encryption is opportunistic via STARTTLS.", fn:"Server relay.", keep:"Mail edge", when:"MTA↔MTA transport."},
+  {svc:"POP3S", port:"995", transport:"TCP", secure:"Yes", why:"POP wrapped in TLS from connection start; protects credentials and message data.", fn:"Secure POP.", keep:"If used", when:"POP clients over TLS."},
+  {svc:"IMAPS", port:"993", transport:"TCP", secure:"Yes", why:"Encrypted IMAP from session start; avoids STARTTLS negotiation issues.", fn:"Secure IMAP.", keep:"If used", when:"Mobile mail sync over TLS."},
+  {svc:"IMAP", port:"143", transport:"TCP", secure:"No", why:"Cleartext IMAP unless upgraded; avoid except for temporary legacy devices.", fn:"Mailbox sync (clear).", keep:"Prefer block", when:"Legacy scanners; migrate."},
+  {svc:"SFTP", port:"22", transport:"TCP", secure:"Yes", why:"File transfer over SSH; benefits from the same cryptographic channel and controls.", fn:"File transfer over SSH.", keep:"Scoped", when:"Automated secure transfers."},
+  {svc:"FTPS", port:"990", transport:"TCP", secure:"Yes", why:"FTP with explicit TLS on the control channel; partner-friendly when SSH is unavailable.", fn:"FTP with TLS.", keep:"Partner edge", when:"B2B transfers with TLS."},
+  {svc:"RDP", port:"3389", transport:"TCP", secure:"Yes", why:"Remote desktop supports TLS and Network Level Authentication; scope to support subnets.", fn:"Remote desktop.", keep:"Internal scoped", when:"Admin jump hosts."},
+  {svc:"SMB", port:"445", transport:"TCP", secure:"No", why:"Used for Windows file and printer sharing; restrict to internal networks.", fn:"File/printer sharing.", keep:"Block edge", when:"Shares, AD operations."},
+  {svc:"SNMP", port:"161", transport:"UDP", secure:"No", why:"Lightweight management polling; prefer v3 for auth/integrity; traps on 162/UDP.", fn:"Device monitoring.", keep:"Internal only", when:"NMS polling/traps."},
+  {svc:"Syslog", port:"514", transport:"Both", secure:"No", why:"Default UDP is connectionless; TCP variants improve reliability; TLS offloaded or separate ports.", fn:"Event logging.", keep:"Internal", when:"Forward logs to SIEM."},
+  {svc:"Kerberos", port:"88", transport:"Both", secure:"Yes", why:"Ticket-based authentication; UDP for small exchanges, TCP for larger or policy.", fn:"Authentication.", keep:"Internal", when:"Domain logon and service auth."},
+  {svc:"IKE/IPsec", port:"500", transport:"UDP", secure:"Yes", why:"Negotiates IPsec SAs during phase 1; NAT-T later uses 4500/UDP.", fn:"IPsec negotiation.", keep:"VPN edge", when:"Site-to-site or remote access."},
+  {svc:"SIP", port:"5060", transport:"Both", secure:"No", why:"VoIP signaling without TLS; media rides RTP elsewhere.", fn:"VoIP signaling.", keep:"Scoped", when:"Phone registration and call setup."},
+  {svc:"MySQL", port:"3306", transport:"TCP", secure:"No", why:"Stateful database connections; wrap in TLS as supported by client and server.", fn:"RDBMS connections.", keep:"Internal", when:"App ↔ DB"},
+  {svc:"MSSQL", port:"1433", transport:"TCP", secure:"No", why:"Microsoft SQL Server default listener; secure via TLS and firewalls.", fn:"RDBMS connections.", keep:"Internal", when:"App ↔ DB"},
+  {svc:"PostgreSQL", port:"5432", transport:"TCP", secure:"No", why:"Postgres default port; supports TLS; restrict exposure.", fn:"RDBMS connections.", keep:"Internal", when:"App ↔ DB"},
+  {svc:"Oracle DB", port:"1521", transport:"TCP", secure:"No", why:"Oracle listener service; typically protected via TLS and network policy.", fn:"RDBMS connections.", keep:"Internal", when:"App ↔ DB"},
+  {svc:"RADIUS", port:"1812", transport:"UDP", secure:"Yes", why:"Centralized AAA for network access; pairs with accounting on 1813/UDP.", fn:"Authentication/authorization.", keep:"Internal", when:"802.1X, VPN, Wi‑Fi"},
+  {svc:"TACACS+", port:"49", transport:"TCP", secure:"Yes", why:"Device admin AAA over TCP; separates auth, authz, and accounting.", fn:"Admin AAA.", keep:"Internal", when:"Network device logins"},
+  {svc:"L2TP", port:"1701", transport:"UDP", secure:"No", why:"Tunneling without native encryption; typically combined with IPsec.", fn:"L2 tunneling.", keep:"VPN internal", when:"L2TP/IPsec deployments"},
+  {svc:"PPTP", port:"1723", transport:"TCP", secure:"No", why:"Deprecated VPN protocol with weak security; avoid for new deployments.", fn:"Legacy VPN.", keep:"Block", when:"Legacy only; migrate"},
+  {svc:"SMTPS", port:"465", transport:"TCP", secure:"Yes", why:"Implicit TLS for SMTP; some environments use 465 as secure submission.", fn:"Secure SMTP.", keep:"Mail edge", when:"Alternate secure submission"},
+  {svc:"DoT (DNS over TLS)", port:"853", transport:"TCP", secure:"Yes", why:"Encrypts resolver-to-upstream DNS to prevent eavesdropping and tampering.", fn:"Encrypted DNS.", keep:"Edge/internal", when:"Resolver privacy"}
+];
+
+// ---------- Scenario generation ----------
+const THEMES = [
+  'payment','health','finance','education','retail','media','manufacturing','gov','startup','research',
+  'logistics','travel','gaming','iot','energy','banking','insurance','legal','telecom','hospitality'
+];
+const VERBS = ['must','needs to','is required to','has to','should','will','plans to','is expected to','is configured to','intends to'];
+const CONTROLS = ['MFA enforced','network ACLs scoped','TLS certificates pinned','SIEM logging enabled','least privilege','change control ticketed','disaster recovery tested','backups validated','NTP synchronized','secrets rotated'];
+
+function ensureMinWords(text, min){
+  const filler = ' Use the standard well-known port, apply principle of least privilege, and document any exceptions with a clear rollback path and a time limit.';
+  while(text.trim().split(/\s+/).length < min){ text += filler; }
+  return text;
+}
+
+function makeScenario(i){
+  const svc = CATALOG[i % CATALOG.length];
+  const theme = THEMES[i % THEMES.length];
+  const verb = VERBS[(i*7) % VERBS.length];
+  const control = CONTROLS[(i*5) % CONTROLS.length];
+  const title = `${i+1}) ${svc.svc} in a ${theme} environment`;
+  let text = `A ${theme} application ${verb} expose or reach a service that matches its expected behavior and security properties. Stakeholders describe the traffic pattern, compliance expectations, and operational guardrails including ${control}. Choose the correct configuration so availability, confidentiality, and integrity are preserved without opening unnecessary risk surfaces across segments.`;
+  text = ensureMinWords(text, 30);
+  const cues = [svc.svc, svc.port, svc.transport, svc.secure==='Yes'?'encrypted':'clear'];
+  const ans = { port: svc.port, transport: svc.transport, secure: svc.secure, service: svc.svc };
+  const proto = svc.transport;
+  const meta = { fn: svc.fn, keep: svc.keep, when: svc.when, why: svc.why };
+  return { title, text, cues, ans, proto, meta };
+}
+
+function generateScenarios(n){
+  const arr=[]; for(let i=0;i<n;i++){ arr.push(makeScenario(i)); } return arr;
+}
+
+const SCENARIOS = generateScenarios(100);
+
+// ---------- DOM refs ----------
+const tTitle = document.getElementById('title');
+const tDesc  = document.getElementById('desc');
+const portInput = document.getElementById('portInput');
+const serviceSel = document.getElementById('serviceSel');
+const bPort = document.getElementById('bPort');
+const bTransport = document.getElementById('bTransport');
+const bSecure = document.getElementById('bSecure');
+const bService = document.getElementById('bService');
+const scoreEl = document.getElementById('score');
+const explainEl = document.getElementById('explain');
+const kmetaEl = document.getElementById('kmeta');
+const scenarioSel = document.getElementById('scenarioSel');
+
+let IDX = 0;
+const titleFor = (i,t)=>`${i+1}) ${t.replace(/^\d+\)\s*/, '')}`;
+
+function clearAll(){
+  portInput.value=""; ["transport","secure"].forEach(clearRadios); serviceSel.value="";
+  [bPort,bTransport,bSecure,bService].forEach(b=>b.classList.remove('good','bad'));
+  scoreEl.textContent=""; scoreEl.className="result"; explainEl.textContent=""; kmetaEl.innerHTML="";
+  setPristine(tDesc, tDesc.dataset.orig || tDesc.innerHTML);
+}
+
+function loadScenario(i){
+  IDX = Math.max(0, Math.min(SCENARIOS.length-1, i));
+  const s = SCENARIOS[IDX];
+  tTitle.textContent = titleFor(IDX, s.title);
+  setPristine(tDesc, s.text);
+  clearAll();
+  scenarioSel.value = String(IDX);
+}
+
+function showMeta(s){
+  kmetaEl.innerHTML = `
+    <div class="k"><b>Function</b>${s.meta.fn}</div>
+    <div class="k"><b>Keep Open?</b>${s.meta.keep}
+      <div style="margin-top:6px"><b>Typical Use</b><br/>${s.meta.when}</div>
+    </div>`;
+}
+
+function explainWhy(s, chosen){
+  const diffs = [];
+  if(String(chosen.port||'') !== s.ans.port) diffs.push(`Port should be ${s.ans.port} for ${s.ans.service}`);
+  if(chosen.transport !== s.ans.transport) diffs.push(`Transport must be ${s.ans.transport}`);
+  if(chosen.secure !== s.ans.secure) diffs.push(`Security should be ${s.ans.secure}`);
+  if(chosen.service !== s.ans.service) diffs.push(`Service should be ${s.ans.service}`);
+  if(diffs.length===0){
+    return `Correct — ${s.ans.service} uses ${s.ans.transport} on port ${s.ans.port}. ${s.meta.why}`;
+  } else {
+    return `Not quite — ${diffs.join('; ')}. ${s.meta.why}`;
+  }
+}
+
+function check(){
+  const s = SCENARIOS[IDX];
+  const chosen = {
+    port: String(portInput.value || ""),
+    transport: getRadio("transport"),
+    secure: getRadio("secure"),
+    service: serviceSel.value
+  };
+  const ok1 = chosen.port === s.ans.port;
+  const ok2 = chosen.transport === s.ans.transport;
+  const ok3 = chosen.secure === s.ans.secure;
+  const ok4 = chosen.service === s.ans.service;
+  decorate(bPort, ok1); decorate(bTransport, ok2); decorate(bSecure, ok3); decorate(bService, ok4);
+  const allOk = ok1 && ok2 && ok3 && ok4;
+  scoreEl.textContent = allOk ? "Correct" : "Try again";
+  scoreEl.className = "result " + (allOk ? "ok":"no");
+  highlight(tDesc, s.cues);
+  explainEl.textContent = explainWhy(s, chosen);
+  showMeta(s);
+}
+
+function reveal(){
+  const s = SCENARIOS[IDX];
+  portInput.value = s.ans.port; setRadio("transport", s.ans.transport); setRadio("secure", s.ans.secure); serviceSel.value = s.ans.service;
+  [bPort,bTransport,bSecure,bService].forEach(b=>decorate(b,true));
+  scoreEl.textContent = "Revealed"; scoreEl.className = "result ok";
+  highlight(tDesc, s.cues);
+  explainEl.textContent = `Answer shown — ${s.ans.service} uses ${s.ans.transport} on ${s.ans.port}. ${s.meta.why}`;
+  showMeta(s);
+}
+
+function shuffle(){
+  for(let i=SCENARIOS.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [SCENARIOS[i],SCENARIOS[j]]=[SCENARIOS[j],SCENARIOS[i]]; }
+  scenarioSel.innerHTML = SCENARIOS.map((s,i)=>`<option value="${i}">${titleFor(i,s.title)}</option>`).join('');
+  loadScenario(0);
+}
+
+function next(){ loadScenario(IDX+1); }
+function prev(){ loadScenario(IDX-1); }
+
+// Wire up
+['checkBtn','checkBtn2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',check); });
+['revealBtn','revealBtn2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',reveal); });
+['resetBtn','resetBtn2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',()=>loadScenario(IDX)); });
+const sh=document.getElementById('shuffleBtn'); if(sh) sh.addEventListener('click',shuffle);
+const nx=document.getElementById('nextBtn'); if(nx) nx.addEventListener('click',next);
+const pv=document.getElementById('prevBtn'); if(pv) pv.addEventListener('click',prev);
+scenarioSel.addEventListener('change',e=>loadScenario(Number(e.target.value)));
+
+// Init selector & first scenario
+scenarioSel.innerHTML = SCENARIOS.map((s,i)=>`<option value="${i}">${titleFor(i,s.title)}</option>`).join('');
+loadScenario(0);
+document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
