@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Service ⇄ Port — Ports Mastery</title>
+<meta name="color-scheme" content="light dark"/>
+<style>
+  :root{--bg:#f0f0f2;--fg:#0f1115;--muted:#6b6f76;--card:#ffffff;--accent:#0a84ff;--radius:18px;--shadow:0 10px 28px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.06);--ok:#1d9f49;--bad:#ff3b30}
+  @media (prefers-color-scheme: dark){:root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08)}}
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  header{position:sticky;top:0;background:var(--bg);border-bottom:var(--border);z-index:10}
+  .nav{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;gap:10px;align-items:center}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(10,132,255,.18)}
+  .spacer{flex:1}
+  .btn{background:transparent;border:var(--border);border-radius:999px;padding:8px 14px;color:inherit;text-decoration:none;font-weight:600;cursor:pointer}
+  main{max-width:1120px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:32px;margin:6px 0 10px}
+  .lead{margin:0 0 14px;color:var(--muted)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  .panel{border:var(--border);background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+  .card{border:var(--border);background:var(--card);border-radius:12px;padding:14px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .choice{border:var(--border);border-radius:999px;padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .choice input{accent-color:var(--accent)}
+  .ok{border-color:var(--ok);background:rgba(29,159,73,.1)}
+  .bad{border-color:var(--bad);background:rgba(255,59,48,.1)}
+  .exp{margin-top:8px;color:var(--muted);font-size:13px}
+  .result{font-weight:800;margin-top:10px}
+  footer{max-width:1120px;margin:40px auto 60px;padding:0 20px;color:var(--muted);font-size:13px}
+  input[type="number"], select{width:100%;padding:10px;border:var(--border);border-radius:10px;background:var(--card);color:inherit}
+  .pill{border:var(--border);border-radius:999px;padding:8px 12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="nav">
+    <a class="btn" href="../index.html" aria-label="Back">←</a>
+    <div class="brand"><span class="dot"></span><span>Service ⇄ Port</span></div>
+    <span class="spacer"></span>
+    <button class="btn" id="reveal">Reveal</button>
+    <button class="btn" id="check">Check</button>
+    <button class="btn" id="shuffle">Shuffle</button>
+  </div>
+</header>
+
+<main>
+  <h1>Service ⇄ Port</h1>
+  <p class="lead">Map services to port numbers, and port numbers back to services. Switch direction and practice both ways.</p>
+
+  <div class="toolbar">
+    <label class="pill">Direction:
+      <select id="direction">
+        <option value="s2p">Service → Port</option>
+        <option value="p2s">Port → Service</option>
+      </select>
+    </label>
+    <label class="pill">Items:
+      <select id="count">
+        <option>8</option>
+        <option>12</option>
+        <option selected>16</option>
+        <option>24</option>
+      </select>
+    </label>
+  </div>
+
+  <section class="panel">
+    <div class="grid" id="qgrid"></div>
+    <div class="result" id="result"></div>
+  </section>
+</main>
+
+<footer>© <span id="year"></span> packetbae — All Rights Reserved</footer>
+
+<script>
+// Canonical catalog
+const CATALOG = [
+  {svc:"HTTP", port:"80", t:"TCP", why:"Unencrypted web."},
+  {svc:"HTTPS", port:"443", t:"TCP", why:"TLS-secured web."},
+  {svc:"SSH", port:"22", t:"TCP", why:"Encrypted remote shell & tunneling."},
+  {svc:"Telnet", port:"23", t:"TCP", why:"Plaintext terminal (avoid)."},
+  {svc:"FTP", port:"21", t:"TCP", why:"Cleartext file transfer (control)."},
+  {svc:"FTPS", port:"990", t:"TCP", why:"FTP control wrapped in TLS."},
+  {svc:"SFTP", port:"22", t:"TCP", why:"File transfer over SSH."},
+  {svc:"SMTP", port:"25", t:"TCP", why:"Server-to-server mail relay."},
+  {svc:"Submission (SMTP)", port:"587", t:"TCP", why:"Client mail submission with auth + STARTTLS."},
+  {svc:"POP3", port:"110", t:"TCP", why:"Mailbox download (clear)."},
+  {svc:"POP3S", port:"995", t:"TCP", why:"POP over TLS."},
+  {svc:"IMAP", port:"143", t:"TCP", why:"Mailbox sync (clear unless upgraded)."},
+  {svc:"IMAPS", port:"993", t:"TCP", why:"IMAP over TLS."},
+  {svc:"LDAP", port:"389", t:"Both", why:"Directory lookups; STARTTLS optional."},
+  {svc:"LDAPS", port:"636", t:"TCP", why:"Directory over TLS."},
+  {svc:"DNS", port:"53", t:"Both", why:"UDP for queries; TCP for transfers/large replies."},
+  {svc:"DoT (DNS over TLS)", port:"853", t:"TCP", why:"Encrypted DNS to upstream."},
+  {svc:"DHCP", port:"67/68", t:"UDP", why:"Address configuration via broadcast/relay."},
+  {svc:"TFTP", port:"69", t:"UDP", why:"Trivial file transfer; PXE/boot."},
+  {svc:"SNMP", port:"161", t:"UDP", why:"Device monitoring; traps on 162."},
+  {svc:"Syslog", port:"514", t:"Both", why:"UDP by default; TCP for reliability."},
+  {svc:"NTP", port:"123", t:"UDP", why:"Time sync."},
+  {svc:"Kerberos", port:"88", t:"Both", why:"Ticket-based auth; UDP or TCP."},
+  {svc:"SMB", port:"445", t:"TCP", why:"File & printer sharing."},
+  {svc:"RDP", port:"3389", t:"TCP", why:"Remote desktop (TLS/NLA)."},
+  {svc:"SIP", port:"5060", t:"Both", why:"VoIP signaling without TLS."},
+  {svc:"MySQL", port:"3306", t:"TCP", why:"App ↔ DB connections."},
+  {svc:"MSSQL", port:"1433", t:"TCP", why:"Microsoft SQL Server."},
+  {svc:"PostgreSQL", port:"5432", t:"TCP", why:"Postgres DB."},
+  {svc:"Oracle DB", port:"1521", t:"TCP", why:"Oracle listener."}
+];
+
+// Build service dropdown once
+const SERVICE_OPTS = CATALOG.map(x=>`<option>${x.svc}</option>`).join('');
+
+function pick(n, arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.random()* (i+1) | 0; [a[i],a[j]]=[a[j],a[i]]}
+  return a.slice(0,n);
+}
+
+function render(){
+  const dir=document.getElementById('direction').value; // s2p or p2s
+  const n=parseInt(document.getElementById('count').value,10);
+  const items=pick(n, CATALOG);
+  const qgrid=document.getElementById('qgrid');
+  qgrid.innerHTML = items.map((it,i)=>{
+    if(dir==='s2p'){
+      return `
+      <div class="card" data-svc="${it.svc}" data-port="${it.port}" data-t="${it.t}" data-why="${it.why}">
+        <div style="font-weight:600">${i+1}) ${it.svc}</div>
+        <div class="row">
+          <label style="flex:1">
+            <input type="number" min="1" max="65535" placeholder="Port" id="p${i}">
+          </label>
+        </div>
+        <div class="exp" id="e${i}"></div>
+      </div>`;
+    } else {
+      return `
+      <div class="card" data-svc="${it.svc}" data-port="${it.port}" data-t="${it.t}" data-why="${it.why}">
+        <div style="font-weight:600">${i+1}) Port ${it.port}</div>
+        <div class="row">
+          <label style="flex:1">
+            <select id="s${i}"><option value="">Select service…</option>${SERVICE_OPTS}</select>
+          </label>
+        </div>
+        <div class="exp" id="e${i}"></div>
+      </div>`;
+    }
+  }).join('');
+}
+
+function check(){
+  const cards=[...document.querySelectorAll('.card')];
+  let correct=0;
+  cards.forEach((card,i)=>{
+    const svc=card.dataset.svc; const port=card.dataset.port; const t=card.dataset.t; const why=card.dataset.why;
+    const exp=document.getElementById('e'+i); exp.textContent='';
+    card.classList.remove('ok','bad');
+    if(document.getElementById('direction').value==='s2p'){
+      const val=(document.getElementById('p'+i).value||'').trim();
+      const ok = (val===port) || (port==='67/68' && (val==='67'||val==='68'));
+      if(ok){ correct++; card.classList.add('ok'); exp.textContent=`${svc} → ${port}. Transport: ${t}. ${why}`; }
+      else { card.classList.add('bad'); exp.textContent=`Expected port ${port} for ${svc}. Transport: ${t}. ${why}`; }
+    } else {
+      const sel=document.getElementById('s'+i).value;
+      const ok = sel===svc || (sel==='SFTP' && svc==='SSH') || (sel==='SSH' && svc==='SFTP');
+      if(ok){ correct++; card.classList.add('ok'); exp.textContent=`Port ${port} → ${svc}. Transport: ${t}. ${why}`; }
+      else { card.classList.add('bad'); exp.textContent=`Expected ${svc} for port ${port}. Transport: ${t}. ${why}`; }
+    }
+  });
+  const res=document.getElementById('result');
+  res.textContent = `${correct}/${cards.length} correct`;
+}
+
+function reveal(){
+  const dir=document.getElementById('direction').value;
+  const cards=[...document.querySelectorAll('.card')];
+  cards.forEach((card,i)=>{
+    const svc=card.dataset.svc; const port=card.dataset.port; const t=card.dataset.t; const why=card.dataset.why;
+    const exp=document.getElementById('e'+i);
+    card.classList.remove('bad'); card.classList.add('ok');
+    if(dir==='s2p'){
+      const inp=document.getElementById('p'+i); if(inp) inp.value=port;
+      exp.textContent=`${svc} → ${port}. Transport: ${t}. ${why}`;
+    } else {
+      const sel=document.getElementById('s'+i); if(sel){ sel.value=svc; }
+      exp.textContent=`Port ${port} → ${svc}. Transport: ${t}. ${why}`;
+    }
+  });
+  document.getElementById('result').textContent='All revealed';
+}
+
+function shuffle(){ render(); document.getElementById('result').textContent=''; }
+
+// Wire
+['reveal','check','shuffle'].forEach(id=>document.getElementById(id).addEventListener('click',window[id]|| (id==='check'?check: id==='reveal'?reveal:shuffle)));
+document.getElementById('direction').addEventListener('change',()=>{ render(); document.getElementById('result').textContent=''; });
+document.getElementById('count').addEventListener('change',()=>{ render(); document.getElementById('result').textContent=''; });
+
+render();
+document.getElementById('year').textContent=new Date().getFullYear();
+</script>
+</body>
+</html>
