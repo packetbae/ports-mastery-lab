@@ -7,79 +7,146 @@
 <meta name="color-scheme" content="light dark"/>
 <style>
   :root{
-    --bg:#f0f0f2;--fg:#0f1115;--card:#fff;--accent:#0a84ff;--muted:#6b6f76;
-    --radius:18px;--shadow:0 6px 18px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.08)
+    --bg:#f0f2f4; --fg:#0f1115; --muted:#6b6f76; --card:#ffffff;
+    --radius:18px; --shadow:0 6px 18px rgba(0,0,0,.08); --border:1px solid rgba(0,0,0,.08)
   }
   @media(prefers-color-scheme: dark){
-    :root{--bg:#121416;--fg:#f4f5f7;--card:#1a1c1f;--accent:#3b9cff;--muted:#9aa0a6;--border:1px solid rgba(255,255,255,.08)}
+    :root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--border:1px solid rgba(255,255,255,.08)}
   }
+
+  /* Page */
+  *{box-sizing:border-box}
+  html,body{height:100%}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--fg)}
-  header{padding:14px 20px;border-bottom:var(--border);background:var(--bg);position:sticky;top:0;z-index:10}
+  header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:var(--border)}
+  .nav{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:12px}
   .brand{font-weight:700;display:flex;align-items:center;gap:8px}
-  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
-  main{padding:20px;display:grid;gap:16px;max-width:500px;margin:0 auto}
-  .card{height:160px;perspective:1000px;cursor:pointer}
+  .dot{width:10px;height:10px;border-radius:50%}
+  main{max-width:440px;margin:0 auto;padding:20px 16px 32px;display:grid;gap:14px}
+  footer{padding:16px;text-align:center;font-size:13px;color:var(--muted)}
+
+  /* Cards */
+  .card{height:164px;perspective:1000px;cursor:pointer}
   .inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s}
   .flipped .inner{transform:rotateY(180deg)}
-  .side{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;box-shadow:var(--shadow);border:var(--border)}
-  .front{background:var(--card);font-size:32px;font-weight:700}
-  .back{background:var(--card);transform:rotateY(180deg);font-size:16px;line-height:1.4}
-  footer{padding:16px;text-align:center;font-size:13px;color:var(--muted)}
+  .side{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:var(--card);backface-visibility:hidden;border-radius:var(--radius);
+    box-shadow:var(--shadow);border:var(--border);padding:16px;text-align:center
+  }
+  .front{font-size:32px;font-weight:800;letter-spacing:.2px}
+  .back{transform:rotateY(180deg);font-size:16px;line-height:1.45}
+  .stripe{
+    position:absolute;top:0;left:0;right:0;height:8px;border-top-left-radius:var(--radius);border-top-right-radius:var(--radius);
+    background:var(--accent,#0a84ff)
+  }
+  .badge{
+    position:absolute;top:12px;right:12px;font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid rgba(0,0,0,.08);
+    background:var(--tint,#eef5ff);color:var(--fg)
+  }
+  .svc{font-weight:700;margin-top:8px}
+  .mn{margin-top:6px;color:var(--muted)}
+  .desc{margin-top:6px}
+
+  /* Tap target improvements */
+  .card:active .side{transform:scale(.995)}
+  .card:focus-within .side{outline:2px solid var(--accent,#0a84ff);outline-offset:2px}
+
+  /* Make sure iPhone 15 doesn’t shift horizontally */
+  @supports (overflow: clip){
+    body{overflow-x:clip}
+  }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand"><span class="dot"></span>Flashcards</div>
+  <div class="nav">
+    <div class="brand"><span class="dot" style="background:#0a84ff"></span><span>Flashcards</span></div>
+  </div>
 </header>
-<main id="deck"></main>
+
+<main id="deck" aria-live="polite"></main>
+
 <footer>© <span id="year"></span> packetbae — All Rights Reserved</footer>
 
 <script>
-const FLASHCARDS = [
-  {port:"20/21", back:"FTP — File Transfer Protocol\nMnemonic: “21 to enter, 20 to move.”"},
-  {port:"22", back:"SSH / SFTP — Secure remote shell & file transfer\nMnemonic: “Two keys to a Secure SHell.”"},
-  {port:"23", back:"Telnet — Insecure remote terminal\nMnemonic: “23 is too free.”"},
-  {port:"25", back:"SMTP — Mail relay\nMnemonic: “25 to deliver mail.”"},
-  {port:"53", back:"DNS — Domain Name System\nMnemonic: “5 + 3 = D-N-S.”"},
-  {port:"67/68", back:"DHCP — Dynamic Host Configuration\nMnemonic: “Client 68 seeks, Server 67 serves.”"},
-  {port:"69", back:"TFTP — Trivial FTP, no auth\nMnemonic: “Simple 69.”"},
-  {port:"80", back:"HTTP — Web traffic (cleartext)\nMnemonic: “The open ’80s web.”"},
-  {port:"110", back:"POP3 — Mail download\nMnemonic: “One-10: one-in, one-out.”"},
-  {port:"123", back:"NTP — Time sync\nMnemonic: “1-2-3… keep time with me.”"},
-  {port:"135–139", back:"NetBIOS — Old Windows services\nMnemonic: “Windows neighborhood 135–139.”"},
-  {port:"143", back:"IMAP — Mailbox sync\nMnemonic: “IMAP I-mail-3 (1-4-3).”"},
-  {port:"161/162", back:"SNMP — Monitoring\nMnemonic: “Poll 161, trap 162.”"},
-  {port:"389", back:"LDAP — Directory service\nMnemonic: “389 starts TLS.”"},
-  {port:"443", back:"HTTPS — Secure web\nMnemonic: “4-4-3: three locks.”"},
-  {port:"445", back:"SMB — File sharing\nMnemonic: “Windows shares 4-4-5.”"},
-  {port:"465", back:"SMTPS — Secure mail\nMnemonic: “4-6-5: secure sleeve.”"},
-  {port:"500", back:"IKE/IPsec — VPN negotiation\nMnemonic: “Half-a-thousand starts the tunnel.”"},
-  {port:"587", back:"Submission (SMTP) — Mail client submission\nMnemonic: “5-8-7: send, auth, encrypt.”"},
-  {port:"636", back:"LDAPS — Encrypted directory\nMnemonic: “389 got serious.”"},
-  {port:"853", back:"DoT — DNS over TLS\nMnemonic: “8-5-3: DNS with a lock.”"},
-  {port:"990", back:"FTPS — FTP over TLS\nMnemonic: “FTP leveled up.”"},
-  {port:"1433", back:"MSSQL — Microsoft SQL Server\nMnemonic: “14-33: SQL for MS.”"},
-  {port:"1521", back:"Oracle DB — Database listener\nMnemonic: “15-21: Oracle’s gate.”"},
-  {port:"3306", back:"MySQL — Database\nMnemonic: “33-0-6: My data mix.”"},
-  {port:"3389", back:"RDP — Remote Desktop\nMnemonic: “33-8-9: 3D screen.”"},
-  {port:"5432", back:"PostgreSQL — Database\nMnemonic: “5-4-3-2: Postgres countdown.”"},
-  {port:"1812/1813", back:"RADIUS — Auth & Accounting\nMnemonic: “Auth 1812, accounting 1813.”"},
-  {port:"49", back:"TACACS+ — Device admin\nMnemonic: “Forty-Nine for TACACS line.”"},
-  {port:"1701", back:"L2TP — Layer-2 tunnel\nMnemonic: “17-01 tunnel.”"},
-  {port:"1723", back:"PPTP — Legacy VPN\nMnemonic: “17-23 retire.”"}
+/* Rotating, soft color palette (no gradients) */
+const PALETTE = [
+  {accent:'#0a84ff', tint:'#e9f2ff'},
+  {accent:'#34c759', tint:'#e9f8ef'},
+  {accent:'#ff9f0a', tint:'#fff3e1'},
+  {accent:'#af52de', tint:'#f2e9fb'},
+  {accent:'#ff3b30', tint:'#ffe9e8'},
+  {accent:'#30b0c7', tint:'#e8f6f9'},
+  {accent:'#8e8e93', tint:'#f0f1f4'}
 ];
 
-const deck=document.getElementById('deck');
-deck.innerHTML = FLASHCARDS.map((f,i)=>`
-  <div class="card" data-idx="${i}">
-    <div class="inner">
-      <div class="side front">${f.port}</div>
-      <div class="side back">${f.back.replace(/\n/g,'<br/>')}</div>
-    </div>
-  </div>`).join('');
+/* Clean, professional mnemonics */
+const FLASHCARDS = [
+  {port:"20/21", svc:"FTP", mn:"“21 controls, 20 carries.”", desc:"File Transfer Protocol — 21 = control channel, 20 = data."},
+  {port:"22", svc:"SSH / SFTP", mn:"“Two twos, two keys.”", desc:"Secure remote shell & file transfer over the same channel."},
+  {port:"23", svc:"Telnet", mn:"“23: plaintext—never for me.”", desc:"Legacy terminal protocol; replace with SSH."},
+  {port:"25", svc:"SMTP (relay)", mn:"“25: post office between servers.”", desc:"Server-to-server mail transport."},
+  {port:"53", svc:"DNS", mn:"“5-3 = D-N-S.”", desc:"Queries via UDP; transfers/large replies via TCP."},
+  {port:"67/68", svc:"DHCP", mn:"“67 serves, 68 gets.”", desc:"Server 67, client 68 — address assignment."},
+  {port:"69", svc:"TFTP", mn:"“69: tiny file transfer.”", desc:"Very simple file transfer; PXE/boot; no auth."},
+  {port:"80", svc:"HTTP", mn:"“80: open web.”", desc:"Cleartext web — use only for redirects/legacy."},
+  {port:"110", svc:"POP3", mn:"“110: pull once inbox.”", desc:"Mailbox download, clear unless upgraded."},
+  {port:"123", svc:"NTP", mn:"“1-2-3: keep time aligned.”", desc:"Time sync over UDP."},
+  {port:"135–139", svc:"NetBIOS", mn:"“135-139: old neighborhood.”", desc:"Legacy Windows name/file services."},
+  {port:"143", svc:"IMAP", mn:"“1-4-3: I-MAP my mail.”", desc:"Mailbox sync; clear unless upgraded."},
+  {port:"161/162", svc:"SNMP", mn:"“Poll 161, trap 162.”", desc:"Monitoring (polls) and traps."},
+  {port:"389", svc:"LDAP", mn:"“389 can upgrade.”", desc:"Directory lookups; STARTTLS available."},
+  {port:"443", svc:"HTTPS", mn:"“4-4-3: lock the web.”", desc:"TLS-encrypted web traffic."},
+  {port:"445", svc:"SMB", mn:"“4-4-5: Windows shares alive.”", desc:"File & printer sharing."},
+  {port:"465", svc:"SMTPS", mn:"“465: secure sleeve.”", desc:"Implicit TLS for SMTP (alt submission)."},
+  {port:"500", svc:"IKE/IPsec", mn:"“500: start the tunnel.”", desc:"IPsec Phase 1 negotiation."},
+  {port:"587", svc:"Submission", mn:"“5-8-7: send with auth.”", desc:"Client mail submission with STARTTLS + auth."},
+  {port:"636", svc:"LDAPS", mn:"“389 got serious.”", desc:"LDAP over dedicated TLS."},
+  {port:"853", svc:"DoT", mn:"“8-5-3: DNS with TLS.”", desc:"DNS over TLS — resolver privacy."},
+  {port:"990", svc:"FTPS", mn:"“990: FTP secured.”", desc:"FTP control wrapped in TLS."},
+  {port:"1433", svc:"MSSQL", mn:"“14-33: SQL for MS.”", desc:"Microsoft SQL Server listener."},
+  {port:"1521", svc:"Oracle DB", mn:"“15-21: Oracle’s gate.”", desc:"Oracle listener service."},
+  {port:"3306", svc:"MySQL", mn:"“33-0-6: my data mix.”", desc:"MySQL database connections."},
+  {port:"3389", svc:"RDP", mn:"“33-8-9: 3D screen.”", desc:"Remote Desktop Protocol with TLS/NLA."},
+  {port:"5432", svc:"PostgreSQL", mn:"“5-4-3-2: countdown to Postgres.”", desc:"Default Postgres port."},
+  {port:"1812/1813", svc:"RADIUS", mn:"“Auth 1812, account 1813.”", desc:"AAA and accounting."},
+  {port:"49", svc:"TACACS+", mn:"“49: TACACS control.”", desc:"Device admin AAA over TCP."},
+  {port:"1701", svc:"L2TP", mn:"“17-01: Layer-2 tunnel.”", desc:"Tunneling without native encryption."},
+  {port:"1723", svc:"PPTP", mn:"“17-23: legacy—retire.”", desc:"Deprecated VPN; avoid for new use."}
+];
 
+/* Build deck */
+const deck = document.getElementById('deck');
+deck.innerHTML = FLASHCARDS.map((f,i)=>{
+  const pal = PALETTE[i % PALETTE.length];
+  return `
+    <div class="card" data-idx="${i}" style="--accent:${pal.accent};--tint:${pal.tint}">
+      <div class="inner">
+        <div class="side front">
+          <div class="stripe"></div>
+          <div class="badge">${f.svc}</div>
+          <div>${f.port}</div>
+        </div>
+        <div class="side back">
+          <div class="stripe"></div>
+          <div class="badge">${f.port}</div>
+          <div class="svc">${f.svc}</div>
+          <div class="mn">${f.mn}</div>
+          <div class="desc">${f.desc}</div>
+        </div>
+      </div>
+    </div>`;
+}).join('');
+
+/* Flip interaction */
 deck.querySelectorAll('.card').forEach(card=>{
   card.addEventListener('click',()=>card.classList.toggle('flipped'));
+  card.addEventListener('keypress',e=>{
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); card.classList.toggle('flipped'); }
+  });
+  card.setAttribute('tabindex','0');
+  card.setAttribute('aria-label','Flashcard; tap or press Enter to flip');
 });
 
 document.getElementById('year').textContent=new Date().getFullYear();
