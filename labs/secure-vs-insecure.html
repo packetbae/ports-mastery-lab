@@ -6,19 +6,35 @@
 <title>Secure vs Insecure — Ports Mastery</title>
 <meta name="color-scheme" content="light dark"/>
 <style>
-  :root{--bg:#f0f0f2;--fg:#0f1115;--muted:#6b6f76;--card:#ffffff;--accent:#0a84ff;--radius:18px;--shadow:0 10px 28px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.06);--ok:#1d9f49;--bad:#ff3b30}
-  @media (prefers-color-scheme: dark){:root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08)}}
+  :root{
+    --bg:#f0f0f2;--fg:#0f1115;--muted:#6b6f76;--card:#ffffff;--accent:#0a84ff;
+    --radius:18px;--shadow:0 10px 28px rgba(0,0,0,.08);--border:1px solid rgba(0,0,0,.06);
+    --ok:#1d9f49;--bad:#ff3b30
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#121416;--fg:#f4f5f7;--muted:#9aa0a6;--card:#1a1c1f;--accent:#3b9cff;--border:1px solid rgba(255,255,255,.08)}
+  }
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-  header{position:sticky;top:0;background:var(--bg);border-bottom:var(--border);z-index:10}
+
+  /* Minimal header; controls live in toolbar below */
+  header{position:sticky;top:0;background:var(--bg);border-bottom:var(--border);z-index:20}
   .nav{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;gap:10px;align-items:center}
   .brand{display:flex;align-items:center;gap:10px;font-weight:700}
   .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(10,132,255,.18)}
   .spacer{flex:1}
   .btn{background:transparent;border:var(--border);border-radius:999px;padding:8px 14px;color:inherit;text-decoration:none;font-weight:600;cursor:pointer}
-  main{max-width:1120px;margin:0 auto;padding:32px 20px 80px}
+
+  /* Sticky toolbar under header for mobile ergonomics */
+  .toolbar{position:sticky; top:56px; z-index:15; background:var(--bg); border-bottom:var(--border)}
+  .toolbar .wrap{max-width:1120px;margin:0 auto;padding:10px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .toolbar .grow{flex:1}
+  .toolbar .btn{border-radius:12px}
+
+  main{max-width:1120px;margin:0 auto;padding:22px 20px 80px}
   h1{font-size:32px;margin:6px 0 10px}
   .lead{margin:0 0 14px;color:var(--muted)}
+
   .panel{border:var(--border);background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
   .card{border:var(--border);background:var(--card);border-radius:12px;padding:14px}
@@ -28,26 +44,45 @@
   .choice.bad{border-color:var(--bad);background:rgba(255,59,48,.1)}
   .choice.ok{border-color:var(--ok);background:rgba(29,159,73,.1)}
   .exp{margin-top:8px;color:var(--muted);font-size:13px}
+  .exp b{color:inherit}
   .result{font-weight:800;margin-top:10px}
   .ok{color:var(--ok)} .no{color:var(--bad)}
+
   footer{max-width:1120px;margin:40px auto 60px;padding:0 20px;color:var(--muted);font-size:13px}
+
+  /* iPhone 15 friendliness (≤430px) */
+  @media (max-width:430px){
+    .nav{padding:12px 14px}
+    .toolbar .wrap{padding:8px 14px}
+    .btn{padding:8px 12px}
+    h1{font-size:26px}
+    .grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  }
 </style>
 </head>
 <body>
 <header>
   <div class="nav">
     <a class="btn" href="../index.html" aria-label="Back">←</a>
-    <div class="brand"><span class="dot"></span><span>Secure vs Insecure</span></div>
+    <div class="brand"><span class="dot" aria-hidden="true"></span><span>Secure vs Insecure</span></div>
     <span class="spacer"></span>
-    <button class="btn" id="reveal">Reveal</button>
-    <button class="btn" id="check">Check</button>
-    <button class="btn" id="shuffle">Shuffle</button>
+    <!-- controls moved to toolbar -->
   </div>
 </header>
 
+<!-- Sticky toolbar (always visible under header) -->
+<div class="toolbar" role="region" aria-label="Practice controls">
+  <div class="wrap">
+    <span class="grow"></span>
+    <button class="btn" id="check">Check</button>
+    <button class="btn" id="reveal">Reveal</button>
+    <button class="btn" id="shuffle">Shuffle</button>
+  </div>
+</div>
+
 <main>
   <h1>Secure vs Insecure</h1>
-  <p class="lead">Choose the secure replacement for each situation. After checking, you’ll see which are right (green), wrong (red), and a short explanation.</p>
+  <p class="lead">Choose the secure replacement for each situation. After checking, correct choices show in green, incorrect in red, with a brief explanation, mnemonic, and a sticky fact.</p>
 
   <section class="panel">
     <div class="grid" id="qgrid"></div>
@@ -59,17 +94,48 @@
 
 <script>
 const ITEMS = [
-  { prompt:"Replace Telnet for router admin", insecure:{svc:"Telnet",port:23}, secure:{svc:"SSH",port:22}, why:"SSH provides encrypted auth and session integrity; Telnet is plaintext and exposes creds." },
-  { prompt:"Secure web storefront", insecure:{svc:"HTTP",port:80}, secure:{svc:"HTTPS",port:443}, why:"HTTPS uses TLS for encryption and authenticity; HTTP is cleartext and vulnerable to MITM." },
-  { prompt:"Directory queries with encryption", insecure:{svc:"LDAP",port:389}, secure:{svc:"LDAPS",port:636}, why:"LDAPS wraps LDAP in TLS from connection start; 389 without TLS leaks credentials." },
-  { prompt:"POP mail retrieval encrypted", insecure:{svc:"POP3",port:110}, secure:{svc:"POP3S",port:995}, why:"POP3S encrypts credentials and mail in transit; POP3 is cleartext." },
-  { prompt:"IMAP mailbox sync encrypted", insecure:{svc:"IMAP",port:143}, secure:{svc:"IMAPS",port:993}, why:"IMAPS encrypts the entire session; IMAP on 143 is plaintext unless upgraded." },
-  { prompt:"Client mail submission with TLS", insecure:{svc:"SMTP (no auth)",port:25}, secure:{svc:"Submission (SMTP)",port:587}, why:"Port 587 expects auth and STARTTLS for client submission; 25 is for MTA relay and often unauthenticated." },
-  { prompt:"File transfer hardening", insecure:{svc:"FTP",port:21}, secure:{svc:"FTPS",port:990}, why:"FTPS uses TLS to protect credentials/data; FTP sends both in clear." },
-  { prompt:"Remote desktop hardening", insecure:{svc:"VNC",port:5900}, secure:{svc:"RDP",port:3389}, why:"RDP supports TLS/NLA and better access control; standard VNC is typically unencrypted." },
-  { prompt:"Directory bind upgrade option", insecure:{svc:"LDAP (clear)",port:389}, secure:{svc:"LDAP with STARTTLS",port:389}, why:"STARTTLS upgrades the same 389 connection to TLS without switching ports." },
-  { prompt:"DNS privacy (resolver to upstream)", insecure:{svc:"DNS",port:53}, secure:{svc:"DoT",port:853}, why:"DNS over TLS encrypts resolver traffic to prevent eavesdropping and tampering." }
+  { prompt:"Replace Telnet for router administration", insecure:{svc:"Telnet",port:23}, secure:{svc:"SSH",port:22}, why:"SSH provides encrypted authentication and session integrity; Telnet is plaintext." },
+  { prompt:"Secure web storefront access", insecure:{svc:"HTTP",port:80}, secure:{svc:"HTTPS",port:443}, why:"HTTPS uses TLS for confidentiality and authenticity; HTTP is cleartext and vulnerable to MITM." },
+  { prompt:"Encrypt directory queries end-to-end", insecure:{svc:"LDAP",port:389}, secure:{svc:"LDAPS",port:636}, why:"LDAPS wraps LDAP in TLS from connection start; 389 without TLS can leak credentials." },
+  { prompt:"Encrypt POP mail retrieval", insecure:{svc:"POP3",port:110}, secure:{svc:"POP3S",port:995}, why:"POP3S encrypts credentials and message data in transit; POP3 is cleartext unless upgraded." },
+  { prompt:"Encrypt IMAP mailbox synchronization", insecure:{svc:"IMAP",port:143}, secure:{svc:"IMAPS",port:993}, why:"IMAPS starts encrypted on 993, avoiding STARTTLS downgrade issues." },
+  { prompt:"Use secure client mail submission", insecure:{svc:"SMTP (unauth)",port:25}, secure:{svc:"Submission (SMTP)",port:587}, why:"587 expects authentication and STARTTLS; 25 is for MTA relay and often unauthenticated." },
+  { prompt:"Harden file transfer", insecure:{svc:"FTP",port:21}, secure:{svc:"FTPS",port:990}, why:"FTPS protects credentials and data with TLS; FTP is cleartext." },
+  { prompt:"Improve remote desktop security", insecure:{svc:"VNC",port:5900}, secure:{svc:"RDP",port:3389}, why:"RDP supports TLS and Network Level Authentication; standard VNC is typically unencrypted." },
+  { prompt:"Upgrade directory bind without changing port", insecure:{svc:"LDAP (clear)",port:389}, secure:{svc:"LDAP with STARTTLS",port:389}, why:"STARTTLS upgrades the same connection on 389 to TLS." },
+  { prompt:"Increase resolver privacy to upstream", insecure:{svc:"DNS",port:53}, secure:{svc:"DoT (DNS over TLS)",port:853}, why:"DNS over TLS encrypts resolver-to-upstream traffic to prevent passive observation and tampering." }
 ];
+
+// Mnemonics for the secure choice (also shown on incorrect feedback)
+const MNEMONICS = {
+  "SSH":"Two keys to a Secure SHell (22).",
+  "HTTPS":"4-4-3 = three locks.",
+  "LDAPS":"636 is LDAP with a sleeve.",
+  "POP3S":"995 = POP over TLS.",
+  "IMAPS":"993 = IMAP over TLS.",
+  "Submission (SMTP)":"5-8-7: send, auth, encrypt.",
+  "FTPS":"FTP leveled up: 990.",
+  "RDP":"33-8-9 = 3D screen.",
+  "LDAP with STARTTLS":"389 can STARTTLS.",
+  "DoT (DNS over TLS)":"8-5-3: DNS with a lock."
+};
+
+// Sticky facts (short, neutral training notes)
+const FACTS = {
+  "SSH":"22 on the internet is brute-forced frequently; keys and scoped access reduce risk.",
+  "HTTPS":"Redirect 80→443 and enable HSTS to prevent downgrade to cleartext.",
+  "LDAPS":"Validate certificate chains and hostnames to avoid bind failures.",
+  "POP3S":"POP often deletes after download by default; TLS protects credentials in transit.",
+  "IMAPS":"TLS from first packet avoids STARTTLS stripping concerns.",
+  "Submission (SMTP)":"Many networks block client 25; 587 with auth limits spam from infected hosts.",
+  "FTPS":"Document passive port ranges, or firewalls will block data channels.",
+  "RDP":"Expose only via VPN or jump hosts; enforce NLA and MFA.",
+  "LDAP with STARTTLS":"Same port, upgraded security; ensure clients actually negotiate TLS.",
+  "DoT (DNS over TLS)":"Encrypts resolver traffic to reduce passive DNS snooping."
+};
+
+function mnemonicFor(svc){ return MNEMONICS[svc] ? ` Mnemonic: ${MNEMONICS[svc]}` : ""; }
+function factFor(svc){ return FACTS[svc] ? ` Sticky fact: ${FACTS[svc]}` : ""; }
 
 function render(items){
   const qgrid=document.getElementById('qgrid');
@@ -83,6 +149,7 @@ function render(items){
       <div class="exp" id="e${i}"></div>
     </div>
   `).join('');
+  document.getElementById('result').textContent="";
 }
 
 function check(){
@@ -97,8 +164,15 @@ function check(){
 
     const el=document.querySelector(`input[name="q${i}"]:checked`);
     if(el){
-      if(el.value==="secure"){ correct++; choiceSecure.classList.add('ok'); exp.textContent = `${it.secure.svc} (${it.secure.port}) is correct — ${it.why}`; }
-      else { choiceInsecure.classList.add('bad'); choiceSecure.classList.add('ok'); exp.textContent = `${it.insecure.svc} (${it.insecure.port}) is not secure. Use ${it.secure.svc} (${it.secure.port}). ${it.why}`; }
+      if(el.value==="secure"){
+        correct++;
+        choiceSecure.classList.add('ok');
+        exp.innerHTML = `<b>${it.secure.svc} (${it.secure.port}) is correct</b> — ${it.why}.${mnemonicFor(it.secure.svc)}${factFor(it.secure.svc)}`;
+      } else {
+        choiceInsecure.classList.add('bad');
+        choiceSecure.classList.add('ok');
+        exp.innerHTML = `<b>${it.insecure.svc} (${it.insecure.port}) is not secure</b>. Use ${it.secure.svc} (${it.secure.port}). ${it.why}.${mnemonicFor(it.secure.svc)}${factFor(it.secure.svc)}`;
+      }
     }
   });
   const res=document.getElementById('result');
@@ -107,7 +181,7 @@ function check(){
 }
 
 function reveal(){
-  ITEMS.forEach((it,i)=>{
+  ITEMS.forEach((_,i)=>{
     const radio=document.querySelector(`input[name="q${i}"][value="secure"]`);
     if(radio) radio.checked=true;
   });
@@ -117,12 +191,12 @@ function reveal(){
 function shuffle(){
   for(let i=ITEMS.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ITEMS[i],ITEMS[j]]=[ITEMS[j],ITEMS[i]]}
   render(ITEMS);
-  document.getElementById('result').textContent="";
 }
 
 document.getElementById('check').addEventListener('click',check);
 document.getElementById('reveal').addEventListener('click',reveal);
 document.getElementById('shuffle').addEventListener('click',shuffle);
+
 render(ITEMS);
 document.getElementById('year').textContent=new Date().getFullYear();
 </script>
